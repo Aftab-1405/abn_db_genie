@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>DB-Genie Visualization - Enhanced</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Enable class-based dark mode
+        tailwind.config = {
+            darkMode: 'class',
+        };
+    </script>
+
+    <!-- Chart.js with plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dark .glass-effect {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .dark .gradient-bg {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .control-card {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+
+        .control-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .control-card:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .custom-checkbox {
+            position: relative;
+            display: inline-block;
+        }
+
+        .custom-checkbox input[type="checkbox"] {
+            opacity: 0;
+            position: absolute;
+        }
+
+        .custom-checkbox .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 20px;
+            width: 20px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .custom-checkbox input[type="checkbox"]:checked~.checkmark {
+            background-color: #4f46e5;
+        }
+
+        .custom-checkbox .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+            left: 7px;
+            top: 3px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            transform: rotate(45deg);
+        }
+
+        .custom-checkbox input[type="checkbox"]:checked~.checkmark:after {
+            display: block;
+        }
+
+        .stats-card {
+            background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+            border-left: 4px solid #4f46e5;
+        }
+
+        .dark .stats-card {
+            background: linear-gradient(145deg, #374151, #1f2937);
+            border-left: 4px solid #6366f1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+
+    <!-- Header -->
+    <header class="gradient-bg shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">DB-Genie</h1>
+                        <p class="text-indigo-100 text-sm">Advanced Data Visualization</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
+                        <i class="fas fa-moon text-white"></i>
+                    </button>
+                    <button id="back-btn"
+                        class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                        <i class="fas fa-times"></i>
+                        <span>Close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        <!-- Error Message -->
+        <div id="error-message" class="hidden">
+            <div
+                class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-4"></i>
+                <h3 class="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">Unable to Load Data</h3>
+                <p class="text-red-600 dark:text-red-300">Please go back and re-run your query, then click Visualize
+                    again.</p>
+            </div>
+        </div>
+
+        <!-- Data Stats -->
+        <div id="data-stats" class="hidden mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stats-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Records</p>
+                            <p id="total-records" class="text-2xl font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <i class="fas fa-database text-indigo-600 dark:text-indigo-400 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="stats-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Columns</p>
+                            <p id="total-columns" class="text-2xl font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <i class="fas fa-columns text-green-600 dark:text-green-400 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="stats-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Chart Type</p>
+                            <p id="current-chart-type" class="text-2xl font-bold text-gray-900 dark:text-white">None</p>
+                        </div>
+                        <i class="fas fa-chart-bar text-purple-600 dark:text-purple-400 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+
+            <!-- Chart Configuration -->
+            <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center">
+                        <i class="fas fa-cog text-indigo-600 dark:text-indigo-400 mr-3"></i>
+                        Chart Configuration
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- X-axis -->
+                        <div class="space-y-3">
+                            <label for="viz-x-axis" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <i class="fas fa-arrows-alt-h mr-2"></i>X-axis
+                            </label>
+                            <select id="viz-x-axis"
+                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
+                                <option value="">Select X-axis column...</option>
+                            </select>
+                        </div>
+
+                        <!-- Chart Type -->
+                        <div class="space-y-3">
+                            <label for="viz-chart-type"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <i class="fas fa-chart-line mr-2"></i>Chart Type
+                            </label>
+                            <select id="viz-chart-type"
+                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
+                                <option value="bar">📊 Bar Chart</option>
+                                <option value="line">📈 Line Chart</option>
+                                <option value="pie">🥧 Pie Chart</option>
+                                <option value="scatter">🔵 Scatter Plot</option>
+                                <option value="doughnut">🍩 Doughnut Chart</option>
+                                <option value="radar">🎯 Radar Chart</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Y-axis Selection -->
+                    <div class="mt-6">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            <i class="fas fa-arrows-alt-v mr-2"></i>Y-axis (Select one or more columns)
+                        </label>
+                        <div id="viz-y-container"
+                            class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Chart Options -->
+                    <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            <i class="fas fa-sliders-h mr-2"></i>Chart Options
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="show-legend"
+                                    class="rounded text-indigo-600 focus:ring-indigo-500" checked>
+                                <label for="show-legend" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
+                                    Legend</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="show-grid"
+                                    class="rounded text-indigo-600 focus:ring-indigo-500" checked>
+                                <label for="show-grid" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
+                                    Grid</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="show-values"
+                                    class="rounded text-indigo-600 focus:ring-indigo-500">
+                                <label for="show-values" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
+                                    Values</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="space-y-6">
+                <!-- Generate Button -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                    <button id="generate-chart"
+                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Generate Chart</span>
+                    </button>
+                </div>
+
+                <!-- Export Options -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-download text-green-600 dark:text-green-400 mr-3"></i>
+                        Export Options
+                    </h3>
+                    <div class="space-y-3">
+                        <button id="export-png"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                            <i class="fas fa-image"></i>
+                            <span>Export as PNG</span>
+                        </button>
+                        <button id="export-data"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                            <i class="fas fa-file-csv"></i>
+                            <span>Export Data</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Color Palette -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-palette text-pink-600 dark:text-pink-400 mr-3"></i>
+                        Color Palette
+                    </h3>
+                    <div class="grid grid-cols-4 gap-2" id="color-palette">
+                        <!-- Color options populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Display -->
+        <div id="chart-section" class="hidden slide-up">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="fas fa-chart-area text-indigo-600 dark:text-indigo-400 mr-3"></i>
+                        Visualization
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button id="fullscreen-btn"
+                            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button id="refresh-chart"
+                            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Enhanced DB-Genie Visualization Script
+        (function () {
+            // Initialize variables
+            let fields, rows;
+            let activeChart = null;
+            let currentColorPalette = 'default';
+
+            // Color palettes
+            const colorPalettes = {
+                default: ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6B7280'],
+                ocean: ['#0077BE', '#00A8CC', '#40E0D0', '#48CAE4', '#0096C7', '#023E8A', '#03045E', '#90E0EF'],
+                sunset: ['#FF6B6B', '#FFE66D', '#FF8E53', '#FF6B9D', '#C44569', '#F8B500', '#FF7675', '#FDCB6E'],
+                forest: ['#27AE60', '#2ECC71', '#58D68D', '#82E0AA', '#239B56', '#1E8449', '#196F3D', '#145A32'],
+                corporate: ['#2C3E50', '#34495E', '#7F8C8D', '#95A5A6', '#BDC3C7', '#ECF0F1', '#3498DB', '#9B59B6']
+            };
+
+            // DOM Elements
+            const errorMessage = document.getElementById("error-message");
+            const controlsContainer = document.getElementById("controls-container");
+            const chartSection = document.getElementById("chart-section");
+            const dataStats = document.getElementById("data-stats");
+            const xSelect = document.getElementById("viz-x-axis");
+            const yContainer = document.getElementById("viz-y-container");
+            const typeSelect = document.getElementById("viz-chart-type");
+            const generateBtn = document.getElementById("generate-chart");
+            const backBtn = document.getElementById("back-btn");
+            const themeToggle = document.getElementById("theme-toggle");
+            const canvas = document.getElementById("chart-canvas");
+            const colorPaletteContainer = document.getElementById("color-palette");
+
+            // Load data from sessionStorage
+            try {
+                fields = JSON.parse(sessionStorage.getItem("viz_fields") || "null");
+                rows = JSON.parse(sessionStorage.getItem("viz_rows") || "null");
+            } catch (e) {
+                fields = null;
+                rows = null;
+            }
+
+            // Check if data is available
+            if (!Array.isArray(fields) || !Array.isArray(rows)) {
+                errorMessage.classList.remove("hidden");
+                controlsContainer.classList.add("hidden");
+                chartSection.classList.add("hidden");
+                dataStats.classList.add("hidden");
+                return;
+            }
+
+            // Initialize the interface
+            initializeInterface();
+
+            function initializeInterface() {
+                // Show data statistics
+                showDataStats();
+
+                // Populate controls
+                populateControls();
+
+                // Setup color palette
+                setupColorPalette();
+
+                // Setup event listeners
+                setupEventListeners();
+
+                // Initialize theme
+                initializeTheme();
+            }
+
+            function showDataStats() {
+                document.getElementById("total-records").textContent = rows.length.toLocaleString();
+                document.getElementById("total-columns").textContent = fields.length;
+                document.getElementById("current-chart-type").textContent = "Bar";
+                dataStats.classList.remove("hidden");
+            }
+
+            function populateControls() {
+                // Populate X-axis dropdown
+                fields.forEach(colName => {
+                    const opt = document.createElement("option");
+                    opt.value = colName;
+                    opt.textContent = colName;
+                    xSelect.appendChild(opt);
+                });
+
+                // Populate Y-axis checkboxes with enhanced styling
+                fields.forEach((colName, idx) => {
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors";
+
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.id = `viz-y-${idx}`;
+                    checkbox.value = colName;
+                    checkbox.className = "rounded text-indigo-600 focus:ring-indigo-500";
+
+                    const label = document.createElement("label");
+                    label.setAttribute("for", `viz-y-${idx}`);
+                    label.className = "ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-grow";
+                    label.textContent = colName;
+
+                    wrapper.appendChild(checkbox);
+                    wrapper.appendChild(label);
+                    yContainer.appendChild(wrapper);
+                });
+            }
+
+            function setupColorPalette() {
+                Object.keys(colorPalettes).forEach(paletteKey => {
+                    const paletteBtn = document.createElement("button");
+                    paletteBtn.className = "w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform";
+                    paletteBtn.style.background = `linear-gradient(45deg, ${colorPalettes[paletteKey][0]}, ${colorPalettes[paletteKey][1]})`;
+                    paletteBtn.onclick = () => {
+                        currentColorPalette = paletteKey;
+                        updateActivePalette(paletteBtn);
+                        if (activeChart) {
+                            regenerateChart();
+                        }
+                    };
+                    colorPaletteContainer.appendChild(paletteBtn);
+                });
+            }
+
+            function updateActivePalette(activeBtn) {
+                colorPaletteContainer.querySelectorAll("button").forEach(btn => {
+                    btn.classList.remove("ring-2", "ring-indigo-500");
+                });
+                activeBtn.classList.add("ring-2", "ring-indigo-500");
+            }
+
+            function setupEventListeners() {
+                // Generate chart button
+                generateBtn.addEventListener("click", generateChart);
+
+                // Back button
+                backBtn.addEventListener("click", () => window.close());
+
+                // Theme toggle
+                themeToggle.addEventListener("click", toggleTheme);
+
+                // Chart type change
+                typeSelect.addEventListener("change", (e) => {
+                    document.getElementById("current-chart-type").textContent =
+                        e.target.options[e.target.selectedIndex].text.split(" ")[1];
+                });
+
+                // Export buttons
+                document.getElementById("export-png").addEventListener("click", exportChart);
+                document.getElementById("export-data").addEventListener("click", exportData);
+                document.getElementById("refresh-chart").addEventListener("click", regenerateChart);
+                document.getElementById("fullscreen-btn").addEventListener("click", toggleFullscreen);
+            }
+
+            function initializeTheme() {
+                const isDark = localStorage.getItem('theme') === 'dark';
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    themeToggle.innerHTML = '<i class="fas fa-sun text-white"></i>';
+                }
+            }
+
+            function toggleTheme() {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                themeToggle.innerHTML = isDark ?
+                    '<i class="fas fa-sun text-white"></i>' :
+                    '<i class="fas fa-moon text-white"></i>';
+            }
+
+            function generateChart() {
+                const xField = xSelect.value;
+                const checkedBoxes = yContainer.querySelectorAll("input[type=checkbox]:checked");
+                const yFields = Array.from(checkedBoxes).map(box => box.value);
+                const chartType = typeSelect.value;
+
+                // Validation
+                if (!xField) {
+                    showNotification("Please select an X-axis column.", "error");
+                    return;
+                }
+                if (yFields.length === 0) {
+                    showNotification("Please select at least one Y-axis column.", "error");
+                    return;
+                }
+
+                // Prepare data
+                const chartData = prepareChartData(xField, yFields, chartType);
+
+                // Create chart
+                createChart(chartData, chartType);
+
+                // Show chart section with animation
+                chartSection.classList.remove("hidden");
+                chartSection.scrollIntoView({ behavior: 'smooth' });
+
+                showNotification("Chart generated successfully!", "success");
+            }
+
+            function prepareChartData(xField, yFields, chartType) {
+                const xIndex = fields.indexOf(xField);
+                const yIndices = yFields.map(y => fields.indexOf(y));
+                const xLabels = rows.map(r => r[xIndex]);
+                const colors = colorPalettes[currentColorPalette];
+
+                const datasets = yFields.map((yName, i) => {
+                    const yi = yIndices[i];
+                    const data = rows.map(r => {
+                        const val = r[yi];
+                        const num = parseFloat(val);
+                        return isNaN(num) ? 0 : num;
+                    });
+
+                    return {
+                        label: yName,
+                        data: data,
+                        backgroundColor: chartType === 'pie' || chartType === 'doughnut' ?
+                            colors.slice(0, data.length) : colors[i % colors.length] + '80',
+                        borderColor: colors[i % colors.length],
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: chartType === 'line' ? false : true
+                    };
+                });
+
+                return { labels: xLabels, datasets: datasets, xField: xField, yFields: yFields };
+            }
+
+            function createChart(data, chartType) {
+                if (activeChart) {
+                    activeChart.destroy();
+                }
+
+                const ctx = canvas.getContext("2d");
+                const showLegend = document.getElementById("show-legend").checked;
+                const showGrid = document.getElementById("show-grid").checked;
+                const showValues = document.getElementById("show-values").checked;
+
+                let config = {
+                    type: chartType,
+                    data: {
+                        labels: data.labels,
+                        datasets: data.datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: showLegend,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: { size: 12, family: 'Inter' }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                displayColors: true,
+                                intersect: false,
+                                mode: 'index'
+                            }
+                        },
+                        scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' ? {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: data.xField,
+                                    font: { size: 14, weight: 'bold', family: 'Inter' }
+                                },
+                                grid: { display: showGrid }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: data.yFields.join(", "),
+                                    font: { size: 14, weight: 'bold', family: 'Inter' }
+                                },
+                                grid: { display: showGrid }
+                            }
+                        } : {},
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                };
+
+                // Special configurations for specific chart types
+                if (chartType === 'scatter') {
+                    const yData = data.datasets[0].data;
+                    const scatterData = data.labels.map((xLab, i) => ({
+                        x: parseFloat(xLab) || i,
+                        y: yData[i]
+                    }));
+
+                    config.data.datasets = [{
+                        label: data.yFields[0],
+                        data: scatterData,
+                        backgroundColor: colorPalettes[currentColorPalette][0] + '80',
+                        borderColor: colorPalettes[currentColorPalette][0],
+                        borderWidth: 2
+                    }];
+
+                    config.options.scales.x.type = 'linear';
+                }
+
+                if (chartType === 'radar') {
+                    config.options.scales = {
+                        r: {
+                            beginAtZero: true,
+                            grid: { display: showGrid }
+                        }
+                    };
+                }
+
+                activeChart = new Chart(ctx, config);
+            }
+
+            function regenerateChart() {
+                if (activeChart) {
+                    generateChart();
+                }
+            }
+
+            function exportChart() {
+                if (!activeChart) {
+                    showNotification("Please generate a chart first.", "error");
+                    return;
+                }
+
+                const link = document.createElement('a');
+                link.download = `db-genie-chart-${Date.now()}.png`;
+                link.href = activeChart.toBase64Image();
+                link.click();
+
+                showNotification("Chart exported successfully!", "success");
+            }
+
+            function exportData() {
+                if (!fields || !rows) {
+                    showNotification("No data available to export.", "error");
+                    return;
+                }
+
+                let csv = fields.join(',') + '\n';
+                csv += rows.map(row => row.join(',')).join('\n');
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const link = document.createElement('a');
+                link.download = `db-genie-data-${Date.now()}.csv`;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+
+                showNotification("Data exported successfully!", "success");
+            }
+
+            function toggleFullscreen() {
+                const chartContainer = chartSection.querySelector('.bg-white');
+                if (!document.fullscreenElement) {
+                    chartContainer.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+
+            function showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full`;
+
+                if (type === 'success') {
+                    notification.className += ' bg-green-500 text-white';
+                    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+                } else {
+                    notification.className += ' bg-red-500 text-white';
+                    notification.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${message}`;
+                }
+
+                document.body.appendChild(notification);
+
+                // Animate in
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-full');
+                }, 100);
+
+                // Animate out and remove
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+
+        })();
+    </script>
+</body>
+
+</html>
+
