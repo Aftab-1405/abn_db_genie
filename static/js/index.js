@@ -1,7 +1,7 @@
 // static/js/index.js
 
 // 1) Import the event‐binder, database fetcher, and the executor from sql.js
-import { initializeEventBindings } from "./events.js";
+import { initializeApp, initializeEventBindings } from "./events.js";
 import { fetchDatabases, executeSqlString } from "./sql.js";
 
 // 2) Build the `elements` object with all the needed DOM references
@@ -61,7 +61,6 @@ export const elements = {
                  c0 3.042 1.135 5.824 3 7.938
                  l3-2.647z"></path>
       </svg>
-      <span class="text-sm md:text-base">Processing...</span>
     </div>
   `,
 
@@ -110,5 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // c)
   initializeEventBindings(elements);
-});
 
+  // d)
+  initializeApp(elements);
+});

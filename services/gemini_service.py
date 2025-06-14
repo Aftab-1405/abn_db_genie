@@ -1,78 +1,86 @@
 """Gemini AI service for chat functionality with DB-Genie identity"""
+import logging
+import textwrap
 import google.generativeai as genai
 from config import Config
-import logging
 
 logger = logging.getLogger(__name__)
 
-# Configure the Gemini API
+# Configure Gemini API
 genai.configure(api_key=Config.GEMINI_API_KEY)
-model = genai.GenerativeModel(model_name="gemini-2.5-flash-preview-05-20")
 
-# Global chat sessions storage
+# Load Gemini model (as per current best practices)
+model = genai.GenerativeModel(model_name="models/gemini-2.5-flash-preview-05-20")
+
+# In-memory chat session store
 chat_sessions = {}
 
 class GeminiService:
 
-    # Configuration options
-    STRICT_MODE = True  # Set to False for more lenient topic enforcement
-    ENABLE_CONTEXT_ENHANCEMENT = False  # Set to False to disable message enhancement
+    # Settings
+    STRICT_MODE = True
+    ENABLE_CONTEXT_ENHANCEMENT = False
 
     @staticmethod
     def get_system_prompt():
-        """Generate the system prompt that defines DB-Genie’s identity, capabilities, and interaction style"""
-        return """
-    You are DB-Genie, an intelligent database assistant developed by ABN Alliance. Follow these guidelines:
+        """Returns DB-Genie’s identity, purpose, and rules for consistent behavior"""
+        return textwrap.dedent("""
+            You are DB-Genie, a data-first database assistant from ABN Alliance. Every response must be grounded in schema metadata or user input; never invent facts. If you’re unsure, ask for clarification rather than guessing.
 
-    IDENTITY & PURPOSE
-    - You are DB-Genie, built by ABN Alliance to simplify database work.
-    - Your sole focus is assisting users with database tasks—queries, design, optimization, troubleshooting.
-    - You currently support MySQL and will expand to other SQL and NoSQL systems in future releases.
+            IDENTITY & PURPOSE
+            - You are solely focused on database tasks: querying, design, optimization, troubleshooting.
+            - Today you support MySQL; future support for other SQL/NoSQL is planned.
 
-    KEY FEATURES
-    1. Zero-Trust Architecture
-    • No user data is stored—only schema metadata is used to generate SQL.
-    2. Built-in SQL Editor
-    • Users can write and execute queries directly in the UI.
-    3. Result Display
-    • Query results appear in a tabular format in the UI.
-    4. Data Visualization
-    • Recommend and render charts (bar, line, pie, scatter, doughnut, radar) based on query results.
+            CORE PRINCIPLES
+            1. Data Accuracy
+            • Only draw on user-provided schemas and metadata.
+            • If a detail is missing or ambiguous, request more info.
+            2. Creative Clarity
+            • Use concise analogies, stepwise breakdowns, and simple language.
+            • Aim for “aha!” moments—help users grasp concepts fast.
+            3. Actionable Guidance
+            • Provide precise SQL snippets, annotated examples, or step-by-step instructions.
+            • Highlight best practices and common pitfalls.
 
-    INTERACTION GUIDELINES
-    1. Stay on topic: If asked non-database questions, politely redirect to database assistance.
-    2. Identity: If asked, say “I’m DB-Genie from ABN Alliance.”
-    3. Conciseness: Respond clearly and to the point. Only provide in-depth explanations if the user explicitly requests more detail.
-    4. Capability Limits: If asked about unsupported features, acknowledge and mention planned expansion (other SQL/NoSQL support).
-    5. Tone: Professional, friendly, and helpful. Avoid robotic phrasing.
-    6. Jargon: Use simple language unless the user is clearly technical.
-    7. Practicality: Prioritize actionable solutions—provide step-by-step guidance when needed.
+            VISUALIZATIONS
+            - Whenever the user requests “visualize,” “diagram,” “schema,” or similar, output accurate diagram code that can render:
+            • Entity-relationship (ER) diagrams
+            • Class-style diagrams
+            • Hierarchies or network graphs
+            • Any mix of the above
+            - Do not mention the underlying diagram library or syntax by name—just supply the code block.
 
-    VISUALIZATION SUGGESTIONS
-    - After generating or receiving a query, analyze its structure and suggest the most suitable chart type from your supported list.
+            FEATURES & UX
+            - Zero-Trust: No persistent storage of user data; only use schema metadata to craft SQL.
+            - Built-in SQL Editor & Results: Users run queries in the UI; you focus on generating and explaining them.
+            - Chart Recommendations: For result sets, suggest appropriate chart types (bar, line, pie, scatter, doughnut, radar) and, when asked, emit chart-config code.
 
-    -If user ask you to visualize the shema then you have to generate accurate Mermaid code which can visualze their schema.
+            INTERACTION GUIDELINES
+            1. Stay on topic: If asked non-database questions, politely redirect to database assistance.
+            2. Identity: If prompted, respond: “I’m DB-Genie from ABN Alliance.”
+            3. Tone: Professional, friendly, and helpful—never robotic.
+            4. Jargon: Favor simplicity unless the user signals deep technical expertise.
+            5. Limits: Acknowledge unsupported features and note planned expansions.
 
-    Remember: Your mission is to make database work easier and accessible—be concise, clear, and focused on real solutions."""
-
+            Remember: Be relentlessly accurate, data-driven, and creatively clear. Your mission is to make database work easier and more intuitive through concise, factual guidance and instantly renderable schema visuals.
+        """)
 
     @staticmethod
     def get_or_create_chat_session(conversation_id, history=None):
-        """Get existing chat session or create new one with system prompt"""
+        """Create a Gemini chat session if it doesn't exist"""
         if conversation_id not in chat_sessions:
-            # Prepare the initial history with system prompt
             system_message = {
                 "role": "user",
                 "parts": [GeminiService.get_system_prompt()]
             }
             system_response = {
                 "role": "model",
-                "parts": ["I understand. I am DB-Genie, developed by ABN Alliance, and I'm here to help you with all your database needs. How can I assist you with your database tasks today?"]
+                "parts": [
+                    "I understand. I am DB-Genie from ABN Alliance. How can I assist with your database tasks today?"
+                ]
             }
 
             initial_history = [system_message, system_response]
-
-            # Add any existing history after the system prompt
             if history:
                 initial_history.extend(history)
 
@@ -81,64 +89,53 @@ class GeminiService:
         return chat_sessions[conversation_id]
 
     @staticmethod
-    def send_message(conversation_id, message, history=None):
-        """Send message to Gemini and get response with DB-Genie identity"""
-        try:
-            chat_session = GeminiService.get_or_create_chat_session(conversation_id, history)
-            
-            # Add context reminder for database focus if the message seems off-topic
-            if GeminiService.ENABLE_CONTEXT_ENHANCEMENT:
-                enhanced_message = GeminiService._enhance_message_if_needed(message)
-            else:
-                enhanced_message = message
-            
-            response = chat_session.send_message(enhanced_message)
-            return response.text
-        except Exception as e:
-            logger.error(f'Error querying Gemini: {e}')
-            raise e
+    def send_message(conversation_id, message, history=None, retry_attempts=3):
+        """Send a message to Gemini and get response"""
+        chat_session = GeminiService.get_or_create_chat_session(conversation_id, history)
+
+        if GeminiService.ENABLE_CONTEXT_ENHANCEMENT:
+            message = GeminiService._enhance_message_if_needed(message)
+
+        for attempt in range(retry_attempts):
+            try:
+                response = chat_session.send_message(message)
+                return response.text
+            except Exception as e:
+                logger.error(f'Attempt {attempt + 1} failed: {e}')
+                if attempt == retry_attempts - 1:
+                    raise e
 
     @staticmethod
     def _enhance_message_if_needed(message):
-        """Enhance message with context if it appears to be off-topic"""
-        # List of keywords that suggest database-related queries
+        """Add context if message seems off-topic"""
         db_keywords = [
-            'sql', 'query', 'database', 'table', 'mysql', 'select', 'insert', 
+            'sql', 'query', 'database', 'table', 'mysql', 'select', 'insert',
             'update', 'delete', 'join', 'index', 'schema', 'primary key',
             'foreign key', 'constraint', 'normalize', 'optimize', 'performance'
         ]
-        
-        # List of keywords that suggest identity questions
         identity_keywords = [
-            'who are you', 'what are you', 'your name', 'created by', 
+            'who are you', 'what are you', 'your name', 'created by',
             'developed by', 'made by', 'creator', 'developer'
         ]
-        
-        message_lower = message.lower()
-        
-        # If it's an identity question, let it pass through normally
-        if any(keyword in message_lower for keyword in identity_keywords):
-            return message
-        
-        # If it's clearly database-related, let it pass through
-        if any(keyword in message_lower for keyword in db_keywords):
-            return message
-        
-        # If it seems off-topic, add a gentle context reminder
-        non_db_indicators = [
-            'weather', 'news', 'sports', 'cooking', 'travel', 'movies', 
+        off_topic_keywords = [
+            'weather', 'news', 'sports', 'cooking', 'travel', 'movies',
             'music', 'politics', 'health', 'fitness', 'games'
         ]
-        
-        if any(indicator in message_lower for indicator in non_db_indicators):
-            return f"{message}\n\n[Context: Please remember to focus on database-related assistance as DB-Genie]"
-        
+
+        msg_lower = message.lower()
+
+        if any(k in msg_lower for k in identity_keywords + db_keywords):
+            return message
+
+        if any(k in msg_lower for k in off_topic_keywords):
+            return f"{message}\n\n[Context: Please focus on database-related assistance with DB-Genie.]"
+
         return message
 
     @staticmethod
     def notify_gemini(conversation_id, message):
-        """Send notification to Gemini without expecting response"""
-        logger.debug(f'Notifying to Gemini: {message}')
+        """Send message to Gemini silently (no response expected)"""
+        logger.debug(f'Notifying Gemini: {message}')
         if conversation_id in chat_sessions:
             try:
                 chat_sessions[conversation_id].send_message(message)
@@ -149,18 +146,16 @@ class GeminiService:
 
     @staticmethod
     def reset_chat_session(conversation_id):
-        """Reset chat session for a given conversation ID"""
+        """Reset the chat session for reuse"""
         if conversation_id in chat_sessions:
             del chat_sessions[conversation_id]
             logger.info(f'Chat session reset for conversation_id: {conversation_id}')
 
     @staticmethod
     def get_session_info(conversation_id):
-        """Get information about current chat session"""
-        if conversation_id in chat_sessions:
-            session = chat_sessions[conversation_id]
-            return {
-                'exists': True,
-                'history_length': len(session.history) if hasattr(session, 'history') else 0
-            }
-        return {'exists': False, 'history_length': 0}
+        """Return info about a given session"""
+        session = chat_sessions.get(conversation_id)
+        return {
+            'exists': bool(session),
+            'history_length': len(session.history) if session and hasattr(session, 'history') else 0
+        }

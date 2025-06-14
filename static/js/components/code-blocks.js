@@ -50,7 +50,7 @@ export function wrapCodeBlocks(textDiv, elements) {
       const diagramContainer = document.createElement("div");
       diagramContainer.className =
         "w-full opacity-0 transform scale-95 transition-all duration-500 ease-in-out " +
-        "bg-white dark:bg-gray-800 " +
+        "bg-white dark:bg-black " + // Changed to pure black
         "border border-gray-200 dark:border-gray-700 " +
         "rounded-lg p-4 " +
         "shadow-sm dark:shadow-gray-900/20";

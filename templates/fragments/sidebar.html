@@ -1,0 +1,68 @@
+<!-- Sidebar - Using Centralized Theming -->
+<aside id="sidebar"
+    class="theme-surface-primary flex flex-col fixed h-screen top-0 left-0 w-full md:w-64 z-20 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out theme-border border-r overflow-hidden">
+
+    <!-- Header (Fixed) -->
+    <div class="flex-shrink-0 p-2 theme-border border-b">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold tracking-tight flex items-center gap-3">
+                <button id="new-conversation" class="theme-hover p-2 rounded-full transition duration-200"
+                    title="New Chat">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"
+                        fill="currentColor">
+                        <path
+                            d="M240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v240h-80v-200H520v-200H240v640h360v80H240Zm638 15L760-183v89h-80v-226h226v80h-90l118 118-56 57Zm-638-95v-640 640Z" />
+                    </svg>
+                </button>
+            </h3>
+            <button id="sidebar-close" class="md:hidden p-2 theme-hover rounded-full transition duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content (Scrollable) -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Controls -->
+        <div class="flex-shrink-0 p-4 space-y-4 theme-border border-b">
+            <!-- Database Dropdown & Connect -->
+            <select id="databases"
+                class="w-full p-3 text-sm font-medium tracking-wide transition duration-200 rounded-lg border focus:outline-none focus:ring-2 theme-input">
+                <!-- Populated by JS -->
+            </select>
+            <button id="connect-db"
+                class="w-full p-3 text-sm font-medium tracking-wide transition duration-200 rounded-lg border theme-button-primary">
+                Connect
+            </button>
+        </div>
+
+        <!-- Conversation History Section -->
+        <div class="flex-1 flex flex-col overflow-hidden p-4">
+            <!-- Conversation History Header -->
+            <div class="flex-shrink-0 mb-4">
+                <div
+                    class="flex items-center gap-2 p-3 text-sm font-medium tracking-wide rounded-lg border theme-surface-secondary">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Chats</span>
+                </div>
+            </div>
+
+            <!-- Conversation List (Always Visible) -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="conversation-list"
+                    class="space-y-2 text-sm theme-surface-secondary border rounded-lg p-3 h-full overflow-y-auto">
+                    <!-- Populated by JS -->
+                    <div id="no-conversations-message" class="theme-text-secondary text-center py-8">
+                        Loading conversations...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>

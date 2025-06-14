@@ -1,0 +1,59 @@
+<!-- QUERY RESULT MODAL - CLEANED -->
+<div id="query-result-modal" class="hidden fixed inset-0 items-center justify-center z-40 p-4 bg-black bg-opacity-50">
+    <div
+        class="flex flex-col relative theme-surface-secondary rounded-2xl w-full h-full md:w-4/5 md:h-4/5 theme-border border">
+
+        <!-- Header and Buttons -->
+        <div
+            class="flex items-center justify-between px-4 py-2 theme-surface-primary rounded-t-2xl theme-border border-b">
+            <div class="flex items-center">
+                <img src="/static/images/Brand Product.png" alt="AI Logo"
+                    class="w-7 h-7 rounded-full object-cover mr-3 shadow-glow animate-slow-rotate" loading="lazy"
+                    width="28" height="28">
+                <span class="theme-text-primary font-bold">DB-Genie</span>
+            </div>
+            <div class="flex gap-2">
+                <button id="export-csv-button" type="button"
+                    class="focus:outline-none text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs md:text-sm px-2 py-1 md:px-3 md:py-1.5"
+                    onclick="exportTableToCSV('query-result.csv')">
+                    Export to CSV
+                </button>
+                <button id="query-result-modal-close-button" type="button"
+                    class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs md:text-sm px-2 py-1 md:px-3 md:py-1.5"
+                    onclick="hideModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="overflow-auto flex-grow p-4 prose prose-sm dark:prose-dark max-w-none">
+            <table id="query-result"
+                class="query-result-table w-full border-collapse theme-surface-secondary theme-border border">
+                <tbody class="theme-border divide-y">
+                    <!-- Table content populated by JS -->
+                    <tr class="theme-surface-secondary">
+                        <td class="p-3 theme-text-primary">Sample Data</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- "Visualize" button -->
+            <div id="show-viz-container" class="mt-4 flex justify-center">
+                <button id="show-viz-btn"
+                    class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm">
+                    Visualize
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <div class="px-4 py-2 theme-surface-primary rounded-b-2xl text-center theme-border border-t">
+            <p class="theme-text-primary text-xs md:text-sm">
+                <strong class="font-bold">Note:</strong> The information
+                provided by DB-Genie may be incorrect, please cross-verify with
+                your actual database.
+            </p>
+        </div>
+    </div>
+</div>

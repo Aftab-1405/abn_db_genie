@@ -1,0 +1,33 @@
+<div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 invisible">
+    <div
+        class="theme-surface-secondary rounded-lg shadow-lg p-6 max-w-xs md:max-w-md w-full space-y-4 theme-border border">
+
+        <div class="flex justify-between items-center">
+            <h3 class="text-xl font-semibold tracking-tight theme-text-primary">Settings</h3>
+            <button id="settings-modal-close" type="button"
+                class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5">
+                Close
+            </button>
+        </div>
+
+        <div class="theme-surface-primary rounded-lg p-4 mb-2">
+            <!-- Theme Toggle -->
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 theme-text-secondary mr-2" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                    <span class="theme-text-primary">Theme</span>
+                </div>
+                <label for="theme-toggle" class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                    <div
+                        class="relative w-11 h-6 theme-surface-secondary peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white theme-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                    </div>
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
