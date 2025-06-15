@@ -48,20 +48,15 @@
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" as="style"
     onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" as="style"
-    onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css"
-    as="style" onload="this.onload=null;this.rel='stylesheet'">
-
-  <!-- Fallback for browsers that don't support preload -->
+    onload="this.onload=null;this.rel='stylesheet'"> <!-- Fallback for browsers that don't support preload -->
   <noscript>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
   </noscript>
 </head>
 
 <body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-colors duration-200">
-  <div class="font-sans overflow-hidden flex flex-col w-screen h-screen text-base leading-relaxed">
+  <div class="font-sans overflow-hidden flex h-screen text-base leading-relaxed min-h-0">
     <!-- Sidebar Fragment -->
     {% include 'fragments/sidebar.html' %}
 
@@ -70,7 +65,7 @@
 
     <!-- Main Content -->
     <main id="main-content"
-      class="bg-neutral-100 dark:bg-neutral-800 flex flex-col flex-grow overflow-hidden transition-transform duration-300 ease-in-out">
+      class="bg-neutral-100 dark:bg-neutral-800 flex flex-col flex-grow overflow-hidden min-h-0 w-full md:ml-64 transition-all duration-300 ease-in-out">
 
       <!-- Header Fragment -->
       {% include 'fragments/header.html' %}

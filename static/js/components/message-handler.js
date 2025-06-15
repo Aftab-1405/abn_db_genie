@@ -1,15 +1,13 @@
-// static/js/components/message-handler.js
+/**
+ * Message Handler Module
+ * Manages chat message creation and animations
+ */
 import { markdownService } from "../services/markdown-service.js";
 import { optimizedTypeWriter, createThinkingAnimation } from "./typewriter.js";
 import { wrapCodeBlocks } from "./code-blocks.js";
 import { scrollToBottom } from "../utils/scroll-utils.js";
 
-/**
- * Enhanced Message Handler - Manages message creation with AI thinking animation
- * Handles both user and AI messages with smooth animations and transitions
- */
-
-// Create avatar image for user or AI sender
+// Creates avatar image for user or AI
 export function createSenderImage(sender) {
   const img = document.createElement("img");
   img.className =
@@ -30,14 +28,59 @@ export function addMessage(elements, content, sender) {
 
   const avatar = createSenderImage(sender);
   const textDiv = document.createElement("div");
-  textDiv.className = `${sender}-message-text prose w-full text-sm md:text-base text-black dark:text-white`;
-
+  textDiv.className = `${sender}-message-text chat-prose w-full text-sm md:text-base text-black dark:text-white`;
   // Process markdown content using cached service
   if (content) {
-    const processedContent = markdownService.processFullMarkdown(content);
+    // Check if the content contains mermaid diagram before processing markdown
+    const hasMermaid = content.includes("```mermaid");
+    const processedContent = hasMermaid
+      ? content // Don't process markdown for mermaid content yet
+      : markdownService.processFullMarkdown(content);
     const contentWrapper = document.createElement("div");
     contentWrapper.className = "content-wrapper"; // This helps with styling
-    contentWrapper.innerHTML = processedContent;
+
+    if (hasMermaid) {
+      const mermaidParts = extractMermaidAndRest(content);
+      if (mermaidParts) {
+        // If there's text before the diagram, process and show it first
+        if (mermaidParts.beforeText) {
+          const beforeDiv = document.createElement("div");
+          beforeDiv.className = "mb-4";
+          beforeDiv.innerHTML = markdownService.processFullMarkdown(
+            mermaidParts.beforeText
+          );
+          contentWrapper.appendChild(beforeDiv);
+        } // Create mermaid container
+        const diagramWrapper = document.createElement("div");
+        diagramWrapper.className = "my-6";
+
+        // Create the pre/code block for the diagram
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.className = "language-mermaid";
+        code.textContent = mermaidParts.mermaidCode;
+        pre.appendChild(code);
+        diagramWrapper.appendChild(pre);
+        contentWrapper.appendChild(diagramWrapper);
+
+        // Process the mermaid diagram
+        import("./code-blocks.js").then(({ wrapCodeBlocks }) => {
+          wrapCodeBlocks(diagramWrapper, elements);
+        });
+
+        // If there's text after the diagram, process and show it
+        if (mermaidParts.rest) {
+          const afterDiv = document.createElement("div");
+          afterDiv.className = "mt-4";
+          afterDiv.innerHTML = markdownService.processFullMarkdown(
+            mermaidParts.rest
+          );
+          contentWrapper.appendChild(afterDiv);
+        }
+      }
+    } else {
+      contentWrapper.innerHTML = processedContent;
+    }
     textDiv.appendChild(contentWrapper);
   }
 
@@ -45,13 +88,7 @@ export function addMessage(elements, content, sender) {
   if (content && content.includes("```mermaid")) {
     const mermaidDivs = textDiv.querySelectorAll(".mermaid");
     mermaidDivs.forEach((div) => {
-      div.classList.add(
-        "w-full",
-        "my-4",
-        "overflow-x-auto",
-        "bg-transparent",
-        "dark:bg-transparent"
-      );
+      div.classList.add("w-full", "my-4", "overflow-x-auto");
       div.style.minWidth = "300px";
     });
   }
@@ -70,6 +107,30 @@ export function addMessage(elements, content, sender) {
   return { messageWrapper, textDiv, avatar };
 }
 
+// Helper: Extract mermaid code and trailing text with better regex
+function extractMermaidAndRest(text) {
+  const mermaidRegex =
+    /```(?:mermaid)?\s*(graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|flowchart|gantt|pie|journey)[\s\S]*?```([\s\S]*)/i;
+  const match = text.match(mermaidRegex);
+  if (match) {
+    const fullMatch = match[0];
+    const startIndex = text.indexOf(fullMatch);
+    const beforeText = text.substring(0, startIndex).trim();
+    const mermaidCode = text
+      .substring(startIndex + 3, text.indexOf("```", startIndex + 3))
+      .trim();
+    const afterText = match[2].trim();
+
+    return {
+      beforeText,
+      mermaid: fullMatch,
+      mermaidCode,
+      rest: afterText,
+    };
+  }
+  return null;
+}
+
 // Enhanced AI response with thinking animation and ultra-fast typing
 export function addGenieResponseWithTypingEffect(elements, responseText) {
   // Add empty message bubble first
@@ -79,62 +140,71 @@ export function addGenieResponseWithTypingEffect(elements, responseText) {
   // Start thinking animation
   const thinkingAnimation = createThinkingAnimation(avatar);
 
-  // Helper: Extract mermaid code and trailing text
-  function extractMermaidAndRest(text) {
-    const mermaidRegex = /```mermaid([\s\S]*?)```([\s\S]*)/i;
-    const match = text.match(mermaidRegex);
-    if (match) {
-      return {
-        mermaid: match[0],
-        mermaidCode: match[1].trim(),
-        rest: match[2].trim(),
-      };
-    }
-    return null;
-  }
-
   setTimeout(() => {
     thinkingAnimation.stop();
     const mermaidParts = extractMermaidAndRest(responseText);
+
     if (mermaidParts) {
-      // Show loading message for diagram
-      textDiv.innerHTML = `<div class="content-wrapper"><div class="mermaid-loading flex items-center gap-2 text-purple-600 dark:text-purple-300"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.963 7.963 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Your schema image is on its way.</span></div></div>`;
-      // Render the diagram behind the scenes
+      // Create a wrapper for better content organization
+      const contentWrapper = document.createElement("div");
+      contentWrapper.className = "content-wrapper";
+      textDiv.appendChild(contentWrapper);
+
+      // If there's text before the diagram, show it first
+      if (mermaidParts.beforeText) {
+        const beforeDiv = document.createElement("div");
+        beforeDiv.className = "mb-4";
+        contentWrapper.appendChild(beforeDiv);
+        optimizedTypeWriter(elements, mermaidParts.beforeText, beforeDiv);
+      }
+
+      // Render the diagram
       import("./code-blocks.js").then(({ wrapCodeBlocks }) => {
-        // Insert the actual mermaid code block (hidden) for wrapCodeBlocks to process
-        setTimeout(() => {
-          textDiv.innerHTML = `<div class='content-wrapper'><pre><code class='language-mermaid'>${mermaidParts.mermaidCode}</code></pre></div>`;
-          wrapCodeBlocks(textDiv, elements);
-          // Wait for diagram to render, then type the rest
+        const diagramWrapper = document.createElement("div");
+        diagramWrapper.className = "my-6";
+        contentWrapper.appendChild(diagramWrapper);
+
+        // Create the pre/code block for the diagram
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.className = "language-mermaid";
+        code.textContent = mermaidParts.mermaidCode;
+        pre.appendChild(code);
+        diagramWrapper.appendChild(pre);
+
+        // Process the code block to render the diagram
+        wrapCodeBlocks(diagramWrapper, elements);
+
+        // If there's text after the diagram, show it
+        if (mermaidParts.rest) {
           setTimeout(() => {
-            // If there is trailing text, type it after the diagram
-            if (mermaidParts.rest) {
-              const trailingDiv = document.createElement("div");
-              trailingDiv.className = "content-wrapper";
-              textDiv.appendChild(trailingDiv);
-              optimizedTypeWriter(
-                elements,
-                mermaidParts.rest,
-                trailingDiv,
-                () => {
-                  markdownService.clearPartialCache();
-                  scrollToBottom(elements);
-                }
-              );
-            } else {
+            const afterDiv = document.createElement("div");
+            afterDiv.className = "mt-4";
+            contentWrapper.appendChild(afterDiv);
+            optimizedTypeWriter(elements, mermaidParts.rest, afterDiv, () => {
               markdownService.clearPartialCache();
               scrollToBottom(elements);
-            }
-          }, 600); // Give time for diagram to render
-        }, 1000); // Always show animation for at least 1 second
+            });
+          }, 800); // Give time for diagram to render
+        } else {
+          setTimeout(() => {
+            markdownService.clearPartialCache();
+            scrollToBottom(elements);
+          }, 800);
+        }
       });
     } else {
-      // No mermaid, type as usual
-      optimizedTypeWriter(elements, responseText, textDiv, () => {
+      // No mermaid diagram, type as usual
+      const contentContainer = document.createElement("div");
+      contentContainer.className = "content-wrapper";
+      textDiv.appendChild(contentContainer);
+
+      optimizedTypeWriter(elements, responseText, contentContainer, () => {
         markdownService.clearPartialCache();
-        wrapCodeBlocks(textDiv, elements);
+        // Process code blocks after typing is complete
+        wrapCodeBlocks(contentContainer, elements);
         scrollToBottom(elements);
       });
     }
-  }, 1000); // 800ms thinking animation duration
+  }, 1000); // 1 second thinking animation duration
 }

@@ -2,6 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    .chat-prose {
+        @apply max-w-none text-gray-700 dark:text-gray-200;
+    }
+
+    .chat-prose>* {
+        @apply mt-0 mb-0;
+    }
+
+    .chat-prose pre {
+        @apply bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-shadow duration-200 my-4 p-4;
+    }
+
+    .chat-prose pre:hover {
+        @apply shadow-lg;
+    }
+
+    .chat-prose pre code {
+        @apply bg-transparent text-gray-800 dark:text-gray-200 font-normal text-sm leading-relaxed block w-full;
+    }
+
+    /* Remove highlight.js defaults */
+    .chat-prose .hljs {
+        @apply bg-transparent text-current p-0;
+    }
+
+    /* Mermaid diagrams */
+    .chat-prose .mermaid-diagram {
+        @apply bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm my-4 p-4;
+    }
+
+    /* Headers */
+    .chat-prose :is(h1, h2, h3, h4, h5, h6) {
+        @apply text-gray-900 dark:text-gray-100 font-semibold leading-relaxed mt-6 mb-3;
+    }
+
+    /* Paragraphs */
+    .chat-prose p {
+        @apply my-3;
+    }
+
+    /* Lists */
+    .chat-prose :is(ul, ol) {
+        @apply my-3 pl-6;
+    }
+
+    /* Links */
+    .chat-prose a {
+        @apply text-blue-600 dark:text-blue-400 hover:underline;
+    }
+
+    /* Inline code */
+    .chat-prose :not(pre)>code {
+        @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-1.5 py-0.5 text-sm;
+    }
+}
+
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 6px;

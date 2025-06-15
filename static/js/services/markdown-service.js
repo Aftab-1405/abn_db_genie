@@ -1,8 +1,3 @@
-// static/js/services/markdown-service.js
-/**
- * Enhanced Markdown Service - Optimized for ultra-fast processing
- * Provides both full and partial markdown processing with advanced caching
- */
 class MarkdownService {
   constructor() {
     this.cache = new Map();
@@ -33,9 +28,128 @@ class MarkdownService {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = safeHtml;
 
-    // Apply syntax highlighting to code blocks
+    // Enhanced syntax highlighting for code blocks
     tempDiv.querySelectorAll("pre code").forEach((block) => {
-      hljs.highlightElement(block);
+      // Try to detect the language from the class
+      let language = block.className.replace("language-", "") || "";
+
+      // If no language specified, try to auto-detect
+      if (!language) {
+        const code = block.textContent;
+        if (
+          code.includes("SELECT") ||
+          code.includes("INSERT INTO") ||
+          code.includes("CREATE TABLE")
+        ) {
+          language = "sql";
+        } else if (code.includes("import") && code.includes("def")) {
+          language = "python";
+        } else if (code.trim().startsWith("{") || code.trim().startsWith("[")) {
+          language = "json";
+        }
+      }
+
+      // Add the proper class for highlighting
+      if (language) {
+        block.className = `language-${language} hljs`;
+      } else {
+        block.className = "hljs";
+      }
+
+      try {
+        hljs.highlightElement(block);
+      } catch (e) {
+        console.warn("Highlight.js error:", e);
+      }
+    });
+
+    // Add custom styling to pre elements and tables
+    tempDiv.querySelectorAll("pre").forEach((pre) => {
+      pre.classList.add(
+        "rounded-lg",
+        "p-4",
+        "my-4",
+        "bg-gray-900",
+        "dark:bg-black",
+        "overflow-x-auto"
+      );
+    });
+
+    // Enhance table styling
+    tempDiv.querySelectorAll("table").forEach((table) => {
+      table.classList.add(
+        "w-full",
+        "border-collapse",
+        "my-4",
+        "bg-white",
+        "dark:bg-gray-800",
+        "rounded-lg",
+        "overflow-hidden",
+        "border",
+        "theme-border",
+        "table-responsive"
+      );
+
+      // Add a wrapper div for horizontal scrolling
+      const wrapper = document.createElement("div");
+      wrapper.classList.add(
+        "overflow-x-auto",
+        "w-full",
+        "max-w-full",
+        "rounded-lg",
+        "border",
+        "theme-border"
+      );
+
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    });
+
+    // Style table headers
+    tempDiv.querySelectorAll("th").forEach((th) => {
+      th.classList.add(
+        "px-4",
+        "py-3",
+        "text-left",
+        "font-semibold",
+        "bg-gray-50",
+        "dark:bg-gray-700",
+        "theme-border",
+        "border-b",
+        "sticky",
+        "top-0",
+        "whitespace-nowrap"
+      );
+    });
+
+    // Style table cells with expandable content
+    tempDiv.querySelectorAll("td").forEach((td) => {
+      td.classList.add(
+        "px-4",
+        "py-3",
+        "theme-border",
+        "border-b",
+        "theme-text-primary",
+        "truncate",
+        "max-w-[200px]",
+        "group-hover:whitespace-normal",
+        "group-hover:overflow-visible",
+        "transition-all"
+      );
+
+      // Wrap cell content in a span for better truncation
+      const content = td.innerHTML;
+      td.innerHTML = `<span class="inline-block truncate hover:whitespace-normal hover:overflow-visible w-full transition-all duration-200">${content}</span>`;
+    });
+
+    // Add row hover effects
+    tempDiv.querySelectorAll("tbody tr").forEach((tr) => {
+      tr.classList.add(
+        "group",
+        "hover:bg-gray-50",
+        "dark:hover:bg-gray-700",
+        "transition-colors"
+      );
     });
 
     const result = tempDiv.innerHTML;
@@ -86,30 +200,3 @@ export const markdownService = new MarkdownService();
 export function processMarkdown(content) {
   return markdownService.processFullMarkdown(content);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

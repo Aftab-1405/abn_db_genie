@@ -126,3 +126,19 @@ def run_sql_query():
         GeminiService.notify_gemini(conversation_id, notify_msg)
     
     return jsonify(result)
+
+@api_bp.route('/delete_conversation/<conversation_id>', methods=['DELETE'])
+@login_required
+def delete_conversation(conversation_id):
+    try:
+        user_id = session['user']
+        FirestoreService.delete_conversation(conversation_id, user_id)
+        
+        # If the deleted conversation is the current one, clear it from session
+        if session.get('conversation_id') == conversation_id:
+            session.pop('conversation_id', None)
+            
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        logger.error(f'Error deleting conversation: {e}')
+        return jsonify({'status': 'error', 'message': str(e)}), 500

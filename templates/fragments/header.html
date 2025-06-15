@@ -1,6 +1,6 @@
 <!-- Header -->
-<header class="p-2 flex items-center justify-between">
-    <div class="flex items-center">
+<header class="p-2 sm:p-3 flex items-center justify-between w-full min-w-0">
+    <div class="flex items-center min-w-0">
         <button id="sidebar-toggle" class="p-2 mr-2 md:hidden" aria-label="Toggle Sidebar" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg"
                 class="h-5 w-5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
@@ -14,7 +14,7 @@
     </div>
 
     <!-- SQL Editor Icon & Profile -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3 min-w-0">
         <!-- SQL Editor Toggle -->
         <button id="sql-editor-toggle"
             class="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition duration-200"
@@ -34,9 +34,8 @@
             </svg>
         </button>
 
-
         <!-- Profile & Settings -->
-        <div class="relative">
+        <div class="relative min-w-0">
             <button id="profile-btn">
                 <img src="/static/images/user.png" alt="User Profile Picture" class="w-7 h-7 rounded-full"
                     loading="lazy" width="28" height="28">
@@ -69,3 +68,10 @@
         </div>
     </div>
 </header>
+
+<!-- Syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>

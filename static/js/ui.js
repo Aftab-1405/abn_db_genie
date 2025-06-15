@@ -1,18 +1,14 @@
-// static/js/ui.js
-
 /**
- * Main UI Module - Central hub importing and exporting all UI functionality
+ * Main UI Module - Central hub for UI functionality
  * Provides a single entry point for all UI-related operations
  */
-
-// Import all modular components
 import { processMarkdown } from "./services/markdown-service.js";
 import {
   createSenderImage,
   addMessage,
   addGenieResponseWithTypingEffect,
 } from "./components/message-handler.js";
-import { optimizedTypeWriter, typeWriter } from "./components/typewriter.js";
+import { optimizedTypeWriter } from "./components/typewriter.js";
 import { wrapCodeBlocks } from "./components/code-blocks.js";
 import {
   showModal,
@@ -39,10 +35,8 @@ export {
   createSenderImage,
   addMessage,
   addGenieResponseWithTypingEffect,
-
-  // Typewriter effects
+  // Typewriter effect
   optimizedTypeWriter,
-  typeWriter,
 
   // Code blocks
   wrapCodeBlocks,
@@ -67,4 +61,3 @@ export {
   // Utilities
   scrollToBottom,
 };
-

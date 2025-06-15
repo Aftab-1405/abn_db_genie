@@ -78,10 +78,16 @@ function initializeCodeMirror() {
     autoCloseBrackets: true,
     styleActiveLine: true,
     matchBrackets: true,
-    value: "Enter SQL query...",
+    value: "", // No default text
     viewportMargin: Infinity,
     lineWrapping: true,
   });
+
+  // Add placeholder to CodeMirror
+  const cm = elements.sqlEditor;
+  const placeholder = "Enter SQL query...";
+  const cmInput = cm.getInputField();
+  cmInput.setAttribute("placeholder", placeholder);
 
   // Make the editor fill 100% height of its container
   function adjustEditorSize() {

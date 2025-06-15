@@ -1,6 +1,6 @@
 <!-- Sidebar - Using Centralized Theming -->
 <aside id="sidebar"
-    class="theme-surface-primary flex flex-col fixed h-screen top-0 left-0 w-full md:w-64 z-20 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out theme-border border-r overflow-hidden">
+    class="theme-surface-primary flex flex-col fixed h-screen top-0 left-0 w-full md:w-64 max-w-full z-20 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out theme-border border-r overflow-hidden min-h-0">
 
     <!-- Header (Fixed) -->
     <div class="flex-shrink-0 p-2 theme-border border-b">
@@ -25,7 +25,7 @@
     </div>
 
     <!-- Main Content (Scrollable) -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col overflow-hidden min-h-0">
         <!-- Top Controls -->
         <div class="flex-shrink-0 p-4 space-y-4 theme-border border-b">
             <!-- Database Dropdown & Connect -->
@@ -40,7 +40,7 @@
         </div>
 
         <!-- Conversation History Section -->
-        <div class="flex-1 flex flex-col overflow-hidden p-4">
+        <div class="flex-1 flex flex-col overflow-hidden p-4 min-h-0">
             <!-- Conversation History Header -->
             <div class="flex-shrink-0 mb-4">
                 <div
@@ -54,9 +54,9 @@
             </div>
 
             <!-- Conversation List (Always Visible) -->
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto min-h-0">
                 <div id="conversation-list"
-                    class="space-y-2 text-sm theme-surface-secondary border rounded-lg p-3 h-full overflow-y-auto">
+                    class="space-y-2 text-sm theme-surface-secondary border rounded-lg p-3 h-full overflow-y-auto min-h-0 overflow-x-hidden">
                     <!-- Populated by JS -->
                     <div id="no-conversations-message" class="theme-text-secondary text-center py-8">
                         Loading conversations...

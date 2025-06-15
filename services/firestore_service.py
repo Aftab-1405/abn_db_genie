@@ -72,3 +72,23 @@ class FirestoreService:
         if conversation.exists:
             return conversation.to_dict()
         return None
+    
+    @staticmethod
+    def delete_conversation(conversation_id, user_id):
+        """Delete a conversation by ID and ensure user owns it"""
+        db = FirestoreService.get_db()
+        
+        # Get conversation reference
+        conversation_ref = db.collection('conversations').document(conversation_id)
+        conversation = conversation_ref.get()
+        
+        # Check if conversation exists and belongs to user
+        if conversation.exists:
+            conv_data = conversation.to_dict()
+            if conv_data['user_id'] == user_id:
+                conversation_ref.delete()
+                return True
+            else:
+                raise PermissionError("User does not own this conversation")
+        else:
+            raise ValueError("Conversation not found")

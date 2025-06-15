@@ -9,6 +9,40 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      // Fluid Typography System
+      fontSize: {
+        xs: [
+          "clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem)",
+          { lineHeight: "1.4" },
+        ],
+        sm: ["clamp(0.875rem, 0.8rem + 0.375vw, 1rem)", { lineHeight: "1.5" }],
+        base: [
+          "clamp(1rem, 0.925rem + 0.375vw, 1.125rem)",
+          { lineHeight: "1.6" },
+        ],
+        lg: [
+          "clamp(1.125rem, 1.025rem + 0.5vw, 1.25rem)",
+          { lineHeight: "1.6" },
+        ],
+        xl: [
+          "clamp(1.25rem, 1.125rem + 0.625vw, 1.5rem)",
+          { lineHeight: "1.5" },
+        ],
+        "2xl": [
+          "clamp(1.5rem, 1.325rem + 0.875vw, 1.875rem)",
+          { lineHeight: "1.4" },
+        ],
+        "3xl": [
+          "clamp(1.875rem, 1.625rem + 1.25vw, 2.25rem)",
+          { lineHeight: "1.3" },
+        ],
+        "4xl": [
+          "clamp(2.25rem, 1.875rem + 1.875vw, 3rem)",
+          { lineHeight: "1.2" },
+        ],
+        "5xl": ["clamp(3rem, 2.5rem + 2.5vw, 4rem)", { lineHeight: "1.1" }],
+        "6xl": ["clamp(3.75rem, 3rem + 3.75vw, 5rem)", { lineHeight: "1.1" }],
+      },
       fontFamily: {
         cursive: ["Dancing Script", "cursive"],
       },
@@ -82,6 +116,35 @@ module.exports = {
           css: {
             maxWidth: "100%",
             color: theme("colors.gray.700"),
+            '[class~="dark"] &': {
+              color: theme("colors.gray.200"),
+            },
+            pre: {
+              backgroundColor: theme("colors.white"),
+              color: theme("colors.gray.800"),
+              borderRadius: theme("borderRadius.lg"),
+              padding: theme("spacing.4"),
+              marginTop: theme("spacing.4"),
+              marginBottom: theme("spacing.4"),
+              border: `1px solid ${theme("colors.gray.200")}`,
+              '[class~="dark"] &': {
+                backgroundColor: theme("colors.gray.800"),
+                color: theme("colors.gray.200"),
+                borderColor: theme("colors.gray.700"),
+              },
+            },
+            code: {
+              backgroundColor: "transparent",
+              padding: "0",
+              fontWeight: "400",
+              color: "inherit",
+            },
+            "pre code": {
+              color: "inherit",
+              fontSize: "inherit",
+              fontFamily: "inherit",
+              lineHeight: "inherit",
+            },
             "> *": {
               marginTop: "0",
               marginBottom: "0",
@@ -91,6 +154,9 @@ module.exports = {
             },
             "h1,h2,h3,h4,h5,h6": {
               color: theme("colors.gray.900"),
+              '[class~="dark"] &': {
+                color: theme("colors.gray.100"),
+              },
               fontWeight: "600",
               lineHeight: "1.4",
               margin: "1.5rem 0 0.75rem 0",

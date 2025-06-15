@@ -322,7 +322,11 @@ function populateConversations(elements, conversations) {
   conversations.forEach((conv) => {
     const conversationItem = document.createElement("div");
     conversationItem.className =
-      "conversation-item cursor-pointer block px-4 py-3 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-500 transition-all duration-200";
+      "conversation-item cursor-pointer block px-4 py-3 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-500 transition-all duration-200 w-full max-w-full";
+
+    // Create a wrapper for flex layout
+    const wrapper = document.createElement("div");
+    wrapper.className = "flex justify-between items-start";
 
     // Format the date
     const date = new Date(conv.timestamp);
@@ -332,18 +336,74 @@ function populateConversations(elements, conversations) {
       minute: "2-digit",
     });
 
-    conversationItem.innerHTML = `
-      <div class="flex flex-col gap-1">
-        <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate">
-          ${conv.preview || "New Conversation"}
-        </div>
-        <div class="text-xs text-neutral-500 dark:text-neutral-400">
-          ${formattedDate} at ${formattedTime}
-        </div>
+    // Content div
+    const contentDiv = document.createElement("div");
+    contentDiv.className =
+      "flex flex-col gap-1 flex-grow min-w-0 w-full max-w-full";
+    contentDiv.innerHTML = `
+      <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full">
+        ${conv.preview || "New Conversation"}
+      </div>
+      <div class="text-xs text-neutral-500 dark:text-neutral-400">
+        ${formattedDate} at ${formattedTime}
       </div>
     `;
 
-    conversationItem.addEventListener("click", (ev) => {
+    // Delete button
+    const deleteButton = document.createElement("button");
+    deleteButton.className =
+      "delete-conversation-btn opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-all duration-200";
+    deleteButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    // Add hover class to parent for delete button visibility
+    conversationItem.classList.add("group");
+
+    // Delete button click handler
+    deleteButton.addEventListener("click", async (ev) => {
+      ev.stopPropagation(); // Prevent conversation from being loaded
+
+      try {
+        const response = await fetch(`/delete_conversation/${conv.id}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          // Remove conversation item from UI
+          conversationItem.remove();
+          showNotification(
+            elements,
+            "Conversation deleted successfully",
+            "success"
+          );
+
+          // If this was the last conversation, show the no conversations message
+          if (conversationListContainer.children.length === 0) {
+            const emptyMessage = document.createElement("div");
+            emptyMessage.id = "no-conversations-message";
+            emptyMessage.className =
+              "text-neutral-500 dark:text-neutral-400 text-center py-8";
+            emptyMessage.textContent = "No conversations yet";
+            conversationListContainer.appendChild(emptyMessage);
+          }
+        } else {
+          showNotification(elements, "Failed to delete conversation", "error");
+        }
+      } catch (error) {
+        showNotification(elements, "Error deleting conversation", "error");
+      }
+    });
+
+    // Add content and delete button to wrapper
+    wrapper.appendChild(contentDiv);
+    wrapper.appendChild(deleteButton);
+    conversationItem.appendChild(wrapper);
+
+    // Conversation click handler
+    contentDiv.addEventListener("click", (ev) => {
       ev.preventDefault();
       loadConversation(elements, conv.id);
 
@@ -382,12 +442,29 @@ async function loadConversation(elements, conversationId) {
     sessionStorage.setItem("conversation_id", conversationId);
     elements.chat.innerHTML = "";
 
-    data.conversation.messages.forEach((msg) => {
+    // Process messages sequentially to ensure proper rendering
+    for (const msg of data.conversation.messages) {
       addMessage(elements, msg.content, msg.sender);
       const lastWrapper = elements.chat.lastElementChild;
       const textDiv = lastWrapper?.querySelector(`.${msg.sender}-message-text`);
-      if (textDiv) wrapCodeBlocks(textDiv, elements);
-    });
+
+      if (textDiv) {
+        // Process code blocks and wait for the content to be ready
+        wrapCodeBlocks(textDiv, elements);
+
+        // Force a reflow to ensure the DOM is updated
+        void textDiv.offsetHeight;
+
+        // For messages containing mermaid diagrams, ensure they're visible
+        if (msg.content.includes("```mermaid")) {
+          const mermaidDivs = textDiv.querySelectorAll(".mermaid-diagram");
+          mermaidDivs.forEach((div) => {
+            div.classList.remove("opacity-0", "scale-95");
+            div.classList.add("opacity-100", "scale-100");
+          });
+        }
+      }
+    }
 
     scrollToBottom(elements);
     showNotification(elements, "Conversation loaded", "success");
@@ -398,16 +475,13 @@ async function loadConversation(elements, conversationId) {
 const sqlEditorToggle = document.getElementById("sql-editor-toggle");
 const sqlEditorPopup = document.getElementById("sql-editor-popup");
 const sqlEditorClose = document.getElementById("sql-editor-close");
-const sqlEditorMinimize = document.getElementById("sql-editor-minimize");
 
 // SQL Editor state management
 const sqlEditorState = {
   isOpen: false,
-  isMinimized: false,
-  previousHeight: null,
 };
 
-if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose && sqlEditorMinimize) {
+if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
   // Ensure editor starts closed (fix for auto-opening issue)
   sqlEditorPopup.classList.add("translate-x-full");
   sqlEditorPopup.classList.remove("translate-x-0");
@@ -416,14 +490,7 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose && sqlEditorMinimize) {
   sqlEditorToggle.addEventListener("click", function (e) {
     e.preventDefault();
     e.stopPropagation();
-
-    if (sqlEditorState.isMinimized) {
-      // If minimized, restore to full size
-      restoreEditor();
-    } else {
-      // Normal open
-      openEditor();
-    }
+    openEditor();
   });
 
   // Close SQL Editor
@@ -433,23 +500,10 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose && sqlEditorMinimize) {
     closeEditor();
   });
 
-  // Minimize SQL Editor
-  sqlEditorMinimize.addEventListener("click", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (sqlEditorState.isMinimized) {
-      restoreEditor();
-    } else {
-      minimizeEditor();
-    }
-  });
-
-  // Close editor when clicking outside (but not when minimized)
+  // Close editor when clicking outside
   document.addEventListener("click", function (e) {
     if (
       sqlEditorState.isOpen &&
-      !sqlEditorState.isMinimized &&
       !sqlEditorPopup.contains(e.target) &&
       !sqlEditorToggle.contains(e.target)
     ) {
@@ -467,10 +521,6 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose && sqlEditorMinimize) {
     sqlEditorPopup.classList.remove("translate-x-full");
     sqlEditorPopup.classList.add("translate-x-0");
     sqlEditorState.isOpen = true;
-    sqlEditorState.isMinimized = false;
-
-    // Update minimize button icon to minimize
-    updateMinimizeButton(false);
 
     // Focus on editor if CodeMirror is available
     setTimeout(() => {
@@ -481,78 +531,16 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose && sqlEditorMinimize) {
   }
 
   function closeEditor() {
+    // Hide the popup completely and reset all styles
     sqlEditorPopup.classList.remove("translate-x-0");
     sqlEditorPopup.classList.add("translate-x-full");
     sqlEditorState.isOpen = false;
-    sqlEditorState.isMinimized = false;
-
-    // Reset any minimized state
-    const contentArea = sqlEditorPopup.querySelector(
-      ".flex-1.flex.flex-col.min-h-0"
-    );
+    sqlEditorPopup.style.height = "";
+    sqlEditorPopup.classList.remove("min-h-0");
+    // Show content area for next open
+    const contentArea = sqlEditorPopup.querySelector(".sql-editor-content");
     if (contentArea) {
       contentArea.style.display = "flex";
-    }
-    sqlEditorPopup.classList.add("h-2/3");
-    sqlEditorPopup.style.height = "";
-
-    updateMinimizeButton(false);
-  }
-
-  function minimizeEditor() {
-    // Store current height classes
-    sqlEditorState.previousHeight = sqlEditorPopup.className;
-
-    // Hide the main content area (everything except header)
-    const contentArea = sqlEditorPopup.querySelector(
-      ".flex-1.flex.flex-col.min-h-0"
-    );
-    if (contentArea) {
-      contentArea.style.display = "none";
-    }
-
-    // Remove height classes and set to auto for header-only display
-    sqlEditorPopup.classList.remove("h-2/3");
-    sqlEditorPopup.style.height = "auto";
-
-    sqlEditorState.isMinimized = true;
-    updateMinimizeButton(true);
-  }
-
-  function restoreEditor() {
-    // Show the content area
-    const contentArea = sqlEditorPopup.querySelector(
-      ".flex-1.flex.flex-col.min-h-0"
-    );
-    if (contentArea) {
-      contentArea.style.display = "flex";
-    }
-
-    // Restore height classes
-    sqlEditorPopup.classList.add("h-2/3");
-    sqlEditorPopup.style.height = "";
-
-    sqlEditorState.isMinimized = false;
-    updateMinimizeButton(false);
-  }
-
-  function updateMinimizeButton(isMinimized) {
-    const minimizeBtn = document.getElementById("sql-editor-minimize");
-    const minimizeIcon = minimizeBtn.querySelector("svg");
-
-    if (isMinimized) {
-      // Change to restore icon (square)
-      minimizeIcon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-      `;
-      minimizeBtn.title = "Restore Editor";
-    } else {
-      // Change back to minimize icon (line)
-      minimizeIcon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-      `;
-      minimizeBtn.title = "Minimize Editor";
     }
   }
 
@@ -568,12 +556,8 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose && sqlEditorMinimize) {
       }
     }
 
-    // Escape to close editor (only if open and not minimized)
-    if (
-      e.key === "Escape" &&
-      sqlEditorState.isOpen &&
-      !sqlEditorState.isMinimized
-    ) {
+    // Escape to close editor (only if open)
+    if (e.key === "Escape" && sqlEditorState.isOpen) {
       closeEditor();
     }
   });
