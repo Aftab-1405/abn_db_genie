@@ -110,8 +110,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // a)
   initializeCodeMirror();
 
-  // b)
-  fetchDatabases(elements);
+  // b) Clear databases dropdown on load
+  elements.databasesDropdown.innerHTML = "";
 
   // c)
   initializeEventBindings(elements);

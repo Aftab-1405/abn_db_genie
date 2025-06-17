@@ -1,11 +1,7 @@
 // Enhanced tailwind.config.js with centralized component classes
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./templates/**/*.html",
-    "./static/**/*.{js,css,html}",
-    "./src/**/*.{js,ts,jsx,tsx,html}",
-  ],
+  content: ["./templates/**/*.html", "./static/**/*.{js,css,html}"],
   darkMode: "class",
   theme: {
     extend: {

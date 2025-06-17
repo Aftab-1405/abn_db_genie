@@ -13,20 +13,14 @@ class Config:
     if not SECRET_KEY or SECRET_KEY == 'your_secret_key_here':
         raise ValueError("SECRET_KEY environment variable must be set to a real value (not the placeholder)")
     
-    # MySQL Configuration
+    # MySQL Configuration (defaults only, credentials to be set at runtime)
     MYSQL_CONFIG = {
-        'user': os.getenv('MYSQL_USER'),
-        'password': os.getenv('MYSQL_PASSWORD'),
-        'host': os.getenv('MYSQL_HOST', 'localhost'),  # localhost as reasonable default
-        'port': int(os.getenv('MYSQL_PORT', 3306)),    # 3306 as standard MySQL port
-        'database': os.getenv('MYSQL_DATABASE')        # Allow None for dynamic database selection
+        'user': None,  # To be set after user input
+        'password': None,  # To be set after user input
+        'host': os.getenv('MYSQL_HOST', 'localhost'),
+        'port': int(os.getenv('MYSQL_PORT', 3306)),
+        'database': None  # To be set after user input
     }
-    
-    # Validate required MySQL credentials
-    if not MYSQL_CONFIG['user']:
-        raise ValueError("MYSQL_USER environment variable is required")
-    if not MYSQL_CONFIG['password']:
-        raise ValueError("MYSQL_PASSWORD environment variable is required")
     
     # Gemini API Configuration
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')

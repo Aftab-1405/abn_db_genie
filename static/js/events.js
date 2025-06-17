@@ -153,10 +153,83 @@ export function initializeEventBindings(elements) {
   elements.mediaQuery.addEventListener("change", handleMediaChange);
   handleMediaChange(elements.mediaQuery);
 
-  // Connect to selected database
+  // Track if server connection is established
+  let serverConnected = false;
+
+  // Connect to selected database or open modal for credentials
   elements.connectDbButton.addEventListener("click", () => {
-    handleConnectDb(elements);
+    const modal = document.getElementById("db-connection-modal");
+    // If not connected to server, open modal for credentials
+    if (!serverConnected || elements.databasesDropdown.options.length === 0) {
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+    } else {
+      // If already connected, connect to selected database
+      const dbName = elements.databasesDropdown.value;
+      if (!dbName) {
+        showNotification(elements, "Please select a database", "error");
+        return;
+      }
+      // Use existing handleConnectDb logic
+      handleConnectDb(elements);
+    }
   });
+
+  // Handle DB Connection Modal actions
+  const dbModal = document.getElementById("db-connection-modal");
+  const dbForm = document.getElementById("db-connection-form");
+  const dbCancel = document.getElementById("db-connection-cancel");
+  if (dbModal && dbForm && dbCancel) {
+    dbCancel.addEventListener("click", () => {
+      dbModal.classList.add("hidden");
+      dbModal.classList.remove("flex");
+      dbForm.reset();
+    });
+    dbForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const host = dbForm["host"].value;
+      const port = dbForm["port"].value;
+      const user = dbForm["user"].value;
+      const password = dbForm["password"].value;
+      // Call backend API to connect and fetch schemas
+      const resp = await fetch("/connect_db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ host, port, user, password }),
+      });
+      const data = await resp.json();
+      if (data.status === "connected") {
+        showNotification(
+          elements,
+          `Connected to database at ${host}:${port}`,
+          "success"
+        );
+        // Populate schemas dropdown
+        const dropdown = elements.databasesDropdown;
+        dropdown.innerHTML = "";
+        if (Array.isArray(data.schemas)) {
+          data.schemas.forEach((db) => {
+            const opt = document.createElement("option");
+            opt.value = db;
+            opt.textContent = db;
+            dropdown.appendChild(opt);
+          });
+        }
+        serverConnected = true;
+        dbModal.classList.add("hidden");
+        dbModal.classList.remove("flex");
+        dbForm.reset();
+      } else {
+        showNotification(
+          elements,
+          data.message || "Failed to connect to the database",
+          "error"
+        );
+      }
+    });
+  }
 
   // Start a new conversation
   elements.newConversationBtn.addEventListener("click", async () => {
@@ -328,13 +401,9 @@ function populateConversations(elements, conversations) {
     const wrapper = document.createElement("div");
     wrapper.className = "flex justify-between items-start";
 
-    // Format the date
+    // Format the date only (no time)
     const date = new Date(conv.timestamp);
     const formattedDate = date.toLocaleDateString();
-    const formattedTime = date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
 
     // Content div
     const contentDiv = document.createElement("div");
@@ -345,7 +414,7 @@ function populateConversations(elements, conversations) {
         ${conv.preview || "New Conversation"}
       </div>
       <div class="text-xs text-neutral-500 dark:text-neutral-400">
-        ${formattedDate} at ${formattedTime}
+        ${formattedDate}
       </div>
     `;
 

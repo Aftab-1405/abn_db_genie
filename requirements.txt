@@ -1,0 +1,15 @@
+# Core dependencies
+Flask
+python-dotenv
+
+# Database
+mysql-connector-python
+
+# Google Cloud / AI
+firebase-admin
+google-generativeai
+
+# Logging and utilities
+
+# (No need to list: logging, typing, functools, concurrent.futures, datetime, uuid, os, time, re)
+# These are standard library modules
