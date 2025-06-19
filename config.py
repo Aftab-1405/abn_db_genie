@@ -15,17 +15,15 @@ class Config:
     
     # MySQL Configuration (defaults only, credentials to be set at runtime)
     MYSQL_CONFIG = {
-        'user': None,  # To be set after user input
+        'user': None,      # To be set after user input
         'password': None,  # To be set after user input
-        'host': os.getenv('MYSQL_HOST', 'localhost'),
-        'port': int(os.getenv('MYSQL_PORT', 3306)),
-        'database': None  # To be set after user input
+        'host': None,      # To be set after user input
+        'port': None,      # To be set after user input
+        'database': None   # To be set after user input
     }
     
     # Gemini API Configuration
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-    if not GEMINI_API_KEY or GEMINI_API_KEY == 'your_gemini_api_key_here':
-        raise ValueError("GEMINI_API_KEY environment variable must be set to a real value (not the placeholder)")
     
     # Firebase credentials from environment variables
     @staticmethod
