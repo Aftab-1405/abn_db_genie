@@ -153,6 +153,71 @@
             background: linear-gradient(145deg, #374151, #1f2937);
             border-left: 4px solid #6366f1;
         }
+
+        .data-table {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .table-cell {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+
+        .dark .table-cell {
+            border-bottom-color: #374151;
+        }
+
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        .sortable-header:hover {
+            background-color: #f3f4f6;
+        }
+
+        .dark .sortable-header:hover {
+            background-color: #374151;
+        }
+
+        .filter-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #ddd6fe;
+            color: #5b21b6;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+
+        .dark .filter-badge {
+            background: #581c87;
+            color: #ddd6fe;
+        }
+
+        .aggregation-result {
+            background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+            border-left: 4px solid #10b981;
+        }
+
+        .dark .aggregation-result {
+            background: linear-gradient(145deg, #064e3b, #047857);
+            border-left: 4px solid #34d399;
+        }
+
+        .comparison-card {
+            background: linear-gradient(145deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+        }
+
+        .dark .comparison-card {
+            background: linear-gradient(145deg, #78350f, #92400e);
+            border-left: 4px solid #fbbf24;
+        }
     </style>
 </head>
 
@@ -199,7 +264,7 @@
 
         <!-- Data Stats -->
         <div id="data-stats" class="hidden mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="stats-card rounded-xl p-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -221,161 +286,526 @@
                 <div class="stats-card rounded-xl p-6">
                     <div class="flex items-center justify-between">
                         <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Filtered Records</p>
+                            <p id="filtered-records" class="text-2xl font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <i class="fas fa-filter text-purple-600 dark:text-purple-400 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="stats-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Chart Type</p>
                             <p id="current-chart-type" class="text-2xl font-bold text-gray-900 dark:text-white">None</p>
                         </div>
-                        <i class="fas fa-chart-bar text-purple-600 dark:text-purple-400 text-2xl"></i>
+                        <i class="fas fa-chart-bar text-yellow-600 dark:text-yellow-400 text-2xl"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Controls -->
-        <div id="controls-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-
-            <!-- Chart Configuration -->
-            <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
-                    <h2 class="text-xl font-semibold mb-6 flex items-center">
-                        <i class="fas fa-cog text-indigo-600 dark:text-indigo-400 mr-3"></i>
-                        Chart Configuration
-                    </h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- X-axis -->
-                        <div class="space-y-3">
-                            <label for="viz-x-axis" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                <i class="fas fa-arrows-alt-h mr-2"></i>X-axis
-                            </label>
-                            <select id="viz-x-axis"
-                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
-                                <option value="">Select X-axis column...</option>
-                            </select>
-                        </div>
-
-                        <!-- Chart Type -->
-                        <div class="space-y-3">
-                            <label for="viz-chart-type"
-                                class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                <i class="fas fa-chart-line mr-2"></i>Chart Type
-                            </label>
-                            <select id="viz-chart-type"
-                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
-                                <option value="bar">📊 Bar Chart</option>
-                                <option value="line">📈 Line Chart</option>
-                                <option value="pie">🥧 Pie Chart</option>
-                                <option value="scatter">🔵 Scatter Plot</option>
-                                <option value="doughnut">🍩 Doughnut Chart</option>
-                                <option value="radar">🎯 Radar Chart</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Y-axis Selection -->
-                    <div class="mt-6">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                            <i class="fas fa-arrows-alt-v mr-2"></i>Y-axis (Select one or more columns)
-                        </label>
-                        <div id="viz-y-container"
-                            class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                    </div>
-
-                    <!-- Chart Options -->
-                    <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                            <i class="fas fa-sliders-h mr-2"></i>Chart Options
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="show-legend"
-                                    class="rounded text-indigo-600 focus:ring-indigo-500" checked>
-                                <label for="show-legend" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
-                                    Legend</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="show-grid"
-                                    class="rounded text-indigo-600 focus:ring-indigo-500" checked>
-                                <label for="show-grid" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
-                                    Grid</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="show-values"
-                                    class="rounded text-indigo-600 focus:ring-indigo-500">
-                                <label for="show-values" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
-                                    Values</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="space-y-6">
-                <!-- Generate Button -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
-                    <button id="generate-chart"
-                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Generate Chart</span>
+        <!-- Analysis Tabs -->
+        <div id="analysis-tabs" class="hidden mb-8">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="-mb-px flex space-x-8">
+                    <button
+                        class="analysis-tab active py-4 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600 dark:text-indigo-400"
+                        data-tab="visualization">
+                        <i class="fas fa-chart-line mr-2"></i>Visualization
                     </button>
-                </div>
+                    <button
+                        class="analysis-tab py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        data-tab="data">
+                        <i class="fas fa-table mr-2"></i>Data Analysis
+                    </button>
+                    <button
+                        class="analysis-tab py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        data-tab="aggregations">
+                        <i class="fas fa-calculator mr-2"></i>Aggregations
+                    </button>
+                    <button
+                        class="analysis-tab py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        data-tab="comparisons">
+                        <i class="fas fa-balance-scale mr-2"></i>Comparisons
+                    </button>
+                </nav>
+            </div>
+        </div>
 
-                <!-- Export Options -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
-                    <h3 class="text-lg font-semibold mb-4 flex items-center">
-                        <i class="fas fa-download text-green-600 dark:text-green-400 mr-3"></i>
-                        Export Options
-                    </h3>
-                    <div class="space-y-3">
-                        <button id="export-png"
-                            class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
-                            <i class="fas fa-image"></i>
-                            <span>Export as PNG</span>
-                        </button>
-                        <button id="export-data"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
-                            <i class="fas fa-file-csv"></i>
-                            <span>Export Data</span>
-                        </button>
+        <!-- Visualization Tab Content -->
+        <div id="tab-visualization" class="tab-content">
+            <!-- Controls -->
+            <div id="controls-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Chart Configuration -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <h2 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fas fa-cog text-indigo-600 dark:text-indigo-400 mr-3"></i>
+                            Chart Configuration
+                        </h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- X-axis -->
+                            <div class="space-y-3">
+                                <label for="viz-x-axis"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <i class="fas fa-arrows-alt-h mr-2"></i>X-axis
+                                </label>
+                                <select id="viz-x-axis"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
+                                    <option value="">Select X-axis column...</option>
+                                </select>
+                            </div>
+
+                            <!-- Chart Type -->
+                            <div class="space-y-3">
+                                <label for="viz-chart-type"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <i class="fas fa-chart-line mr-2"></i>Chart Type
+                                </label>
+                                <select id="viz-chart-type"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
+                                    <option value="bar">📊 Bar Chart</option>
+                                    <option value="line">📈 Line Chart</option>
+                                    <option value="pie">🥧 Pie Chart</option>
+                                    <option value="scatter">🔵 Scatter Plot</option>
+                                    <option value="doughnut">🍩 Doughnut Chart</option>
+                                    <option value="radar">🎯 Radar Chart</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Y-axis Selection -->
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                <i class="fas fa-arrows-alt-v mr-2"></i>Y-axis (Select one or more columns)
+                            </label>
+                            <div id="viz-y-container"
+                                class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Chart Options -->
+                        <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                <i class="fas fa-sliders-h mr-2"></i>Chart Options
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="show-legend"
+                                        class="rounded text-indigo-600 focus:ring-indigo-500" checked>
+                                    <label for="show-legend" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
+                                        Legend</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="show-grid"
+                                        class="rounded text-indigo-600 focus:ring-indigo-500" checked>
+                                    <label for="show-grid" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
+                                        Grid</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="show-values"
+                                        class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <label for="show-values" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show
+                                        Values</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Color Palette -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
-                    <h3 class="text-lg font-semibold mb-4 flex items-center">
-                        <i class="fas fa-palette text-pink-600 dark:text-pink-400 mr-3"></i>
-                        Color Palette
-                    </h3>
-                    <div class="grid grid-cols-4 gap-2" id="color-palette">
-                        <!-- Color options populated by JavaScript -->
+                <!-- Quick Actions -->
+                <div class="space-y-6">
+                    <!-- Generate Button -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <button id="generate-chart"
+                            class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Generate Chart</span>
+                        </button>
+                    </div>
+
+                    <!-- Export Options -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-download text-green-600 dark:text-green-400 mr-3"></i>
+                            Export Options
+                        </h3>
+                        <div class="space-y-3">
+                            <button id="export-png"
+                                class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                                <i class="fas fa-image"></i>
+                                <span>Export as PNG</span>
+                            </button>
+                            <button id="export-data"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                                <i class="fas fa-file-csv"></i>
+                                <span>Export Data</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Color Palette -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-palette text-pink-600 dark:text-pink-400 mr-3"></i>
+                            Color Palette
+                        </h3>
+                        <div class="grid grid-cols-4 gap-2" id="color-palette">
+                            <!-- Color options populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Display -->
+            <div id="chart-section" class="hidden slide-up">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                            <i class="fas fa-chart-area text-indigo-600 dark:text-indigo-400 mr-3"></i>
+                            Visualization
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button id="fullscreen-btn"
+                                class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <button id="refresh-chart"
+                                class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-canvas"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Chart Display -->
-        <div id="chart-section" class="hidden slide-up">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                        <i class="fas fa-chart-area text-indigo-600 dark:text-indigo-400 mr-3"></i>
-                        Visualization
-                    </h2>
-                    <div class="flex space-x-2">
-                        <button id="fullscreen-btn"
-                            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                            <i class="fas fa-expand"></i>
+        <!-- Data Analysis Tab Content -->
+        <div id="tab-data" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- Filters -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fas fa-filter text-purple-600 dark:text-purple-400 mr-3"></i>
+                            Filters & Sorting
+                        </h3>
+
+                        <!-- Column Filter -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by
+                                Column</label>
+                            <select id="filter-column"
+                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                <option value="">Select column...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter
+                                Value</label>
+                            <input type="text" id="filter-value" placeholder="Enter filter value..."
+                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                        </div>
+
+                        <button id="apply-filter"
+                            class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg mb-4">
+                            Apply Filter
                         </button>
-                        <button id="refresh-chart"
-                            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                            <i class="fas fa-redo"></i>
+
+                        <!-- Active Filters -->
+                        <div id="active-filters" class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Active Filters</h4>
+                            <div id="filter-tags" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- Sorting -->
+                        <div class="border-t pt-4">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</h4>
+                            <select id="sort-column"
+                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 mb-2">
+                                <option value="">Select column...</option>
+                            </select>
+                            <select id="sort-direction"
+                                class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                <option value="asc">Ascending</option>
+                                <option value="desc">Descending</option>
+                            </select>
+                        </div>
+
+                        <button id="clear-all-filters"
+                            class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg mt-4">
+                            Clear All
                         </button>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="chart-canvas"></canvas>
+
+                <!-- Data Table -->
+                <div class="lg:col-span-3">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-semibold flex items-center">
+                                <i class="fas fa-table text-green-600 dark:text-green-400 mr-3"></i>
+                                Data Table
+                            </h3>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">
+                                    Showing <span id="showing-count">0</span> of <span id="total-count">0</span> records
+                                </span>
+                                <button id="export-filtered-data"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm">
+                                    Export Filtered
+                                </button>
+                            </div>
+                        </div>
+                        <div class="data-table border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <table id="data-table" class="min-w-full">
+                                <thead id="table-header" class="bg-gray-50 dark:bg-gray-700">
+                                    <!-- Populated by JavaScript -->
+                                </thead>
+                                <tbody id="table-body">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aggregations Tab Content -->
+        <div id="tab-aggregations" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Aggregation Controls -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fas fa-calculator text-green-600 dark:text-green-400 mr-3"></i>
+                            Aggregation Settings
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Group
+                                    By</label>
+                                <select id="group-by-column"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="">Select column...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aggregate
+                                    Column</label>
+                                <select id="aggregate-column"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="">Select column...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aggregation
+                                    Function</label>
+                                <select id="aggregate-function"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="count">Count</option>
+                                    <option value="sum">Sum</option>
+                                    <option value="avg">Average</option>
+                                    <option value="min">Minimum</option>
+                                    <option value="max">Maximum</option>
+                                </select>
+                            </div>
+
+                            <button id="calculate-aggregation"
+                                class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg">
+                                Calculate Aggregation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aggregation Results -->
+                <div class="lg:col-span-2">
+                    <div class="space-y-6">
+                        <!-- Quick Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="aggregation-result rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Sum</p>
+                                        <p id="quick-sum" class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-plus text-green-600 dark:text-green-400"></i>
+                                </div>
+                            </div>
+                            <div class="aggregation-result rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Average</p>
+                                        <p id="quick-avg" class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-chart-line text-blue-600 dark:text-blue-400"></i>
+                                </div>
+                            </div>
+                            <div class="aggregation-result rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Min</p>
+                                        <p id="quick-min" class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-arrow-down text-red-600 dark:text-red-400"></i>
+                                </div>
+                            </div>
+                            <div class="aggregation-result rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Max</p>
+                                        <p id="quick-max" class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-arrow-up text-green-600 dark:text-green-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aggregation Results Table -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-semibold flex items-center">
+                                    <i class="fas fa-table text-green-600 dark:text-green-400 mr-3"></i>
+                                    Aggregation Results
+                                </h3>
+                                <button id="export-aggregation"
+                                    class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm">
+                                    Export Results
+                                </button>
+                            </div>
+                            <div
+                                class="data-table border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <table id="aggregation-table" class="min-w-full">
+                                    <thead id="aggregation-header" class="bg-gray-50 dark:bg-gray-700">
+                                        <!-- Populated by JavaScript -->
+                                    </thead>
+                                    <tbody id="aggregation-body">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparisons Tab Content -->
+        <div id="tab-comparisons" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Comparison Controls -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fas fa-balance-scale text-yellow-600 dark:text-yellow-400 mr-3"></i>
+                            Comparison Settings
+                        </h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Compare
+                                    Column</label>
+                                <select id="compare-column"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="">Select column...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comparison
+                                    Type</label>
+                                <select id="comparison-type"
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="percentile">Percentile Analysis</option>
+                                    <option value="distribution">Distribution Analysis</option>
+                                    <option value="outlier">Outlier Detection</option>
+                                    <option value="correlation">Correlation Matrix</option>
+                                </select>
+                            </div>
+
+                            <div id="comparison-options">
+                                <!-- Dynamic options based on comparison type -->
+                            </div>
+
+                            <button id="run-comparison"
+                                class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-6 rounded-lg">
+                                Run Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Results -->
+                <div class="lg:col-span-2">
+                    <div class="space-y-6">
+                        <!-- Comparison Summary -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="comparison-card rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Median</p>
+                                        <p id="comparison-median"
+                                            class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-chart-line text-yellow-600 dark:text-yellow-400"></i>
+                                </div>
+                            </div>
+                            <div class="comparison-card rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Std Dev</p>
+                                        <p id="comparison-stddev"
+                                            class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-wave-square text-orange-600 dark:text-orange-400"></i>
+                                </div>
+                            </div>
+                            <div class="comparison-card rounded-xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Outliers</p>
+                                        <p id="comparison-outliers"
+                                            class="text-xl font-bold text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                    <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comparison Results Display -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 control-card">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-semibold flex items-center">
+                                    <i class="fas fa-chart-bar text-yellow-600 dark:text-yellow-400 mr-3"></i>
+                                    Analysis Results
+                                </h3>
+                                <button id="export-comparison"
+                                    class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg text-sm">
+                                    Export Analysis
+                                </button>
+                            </div>
+                            <div id="comparison-results" class="min-h-64">
+                                <!-- Results populated by JavaScript -->
+                                <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                                    <i class="fas fa-chart-bar text-4xl mb-4"></i>
+                                    <p>Run an analysis to see results here</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -386,8 +816,13 @@
         (function () {
             // Initialize variables
             let fields, rows;
+            let filteredRows = [];
+            let activeFilters = [];
             let activeChart = null;
             let currentColorPalette = 'default';
+            let currentTab = 'visualization';
+            let aggregationResults = [];
+            let comparisonResults = {};
 
             // Color palettes
             const colorPalettes = {
@@ -403,6 +838,7 @@
             const controlsContainer = document.getElementById("controls-container");
             const chartSection = document.getElementById("chart-section");
             const dataStats = document.getElementById("data-stats");
+            const analysisTabs = document.getElementById("analysis-tabs");
             const xSelect = document.getElementById("viz-x-axis");
             const yContainer = document.getElementById("viz-y-container");
             const typeSelect = document.getElementById("viz-chart-type");
@@ -427,8 +863,12 @@
                 controlsContainer.classList.add("hidden");
                 chartSection.classList.add("hidden");
                 dataStats.classList.add("hidden");
+                analysisTabs.classList.add("hidden");
                 return;
             }
+
+            // Initialize filtered rows with all data
+            filteredRows = [...rows];
 
             // Initialize the interface
             initializeInterface();
@@ -436,6 +876,9 @@
             function initializeInterface() {
                 // Show data statistics
                 showDataStats();
+
+                // Show analysis tabs
+                analysisTabs.classList.remove("hidden");
 
                 // Populate controls
                 populateControls();
@@ -448,11 +891,24 @@
 
                 // Initialize theme
                 initializeTheme();
+
+                // Setup data table
+                setupDataTable();
+
+                // Setup aggregation controls
+                setupAggregationControls();
+
+                // Setup comparison controls
+                setupComparisonControls();
+
+                // Calculate initial quick stats
+                calculateQuickStats();
             }
 
             function showDataStats() {
                 document.getElementById("total-records").textContent = rows.length.toLocaleString();
                 document.getElementById("total-columns").textContent = fields.length;
+                document.getElementById("filtered-records").textContent = filteredRows.length.toLocaleString();
                 document.getElementById("current-chart-type").textContent = "Bar";
                 dataStats.classList.remove("hidden");
             }
@@ -486,6 +942,22 @@
                     wrapper.appendChild(label);
                     yContainer.appendChild(wrapper);
                 });
+
+                // Populate filter dropdowns
+                const filterColumn = document.getElementById("filter-column");
+                const sortColumn = document.getElementById("sort-column");
+
+                fields.forEach(colName => {
+                    const filterOpt = document.createElement("option");
+                    filterOpt.value = colName;
+                    filterOpt.textContent = colName;
+                    filterColumn.appendChild(filterOpt);
+
+                    const sortOpt = document.createElement("option");
+                    sortOpt.value = colName;
+                    sortOpt.textContent = colName;
+                    sortColumn.appendChild(sortOpt);
+                });
             }
 
             function setupColorPalette() {
@@ -512,6 +984,14 @@
             }
 
             function setupEventListeners() {
+                // Tab switching
+                document.querySelectorAll('.analysis-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const tabName = e.target.dataset.tab;
+                        switchTab(tabName);
+                    });
+                });
+
                 // Generate chart button
                 generateBtn.addEventListener("click", generateChart);
 
@@ -530,8 +1010,45 @@
                 // Export buttons
                 document.getElementById("export-png").addEventListener("click", exportChart);
                 document.getElementById("export-data").addEventListener("click", exportData);
+                document.getElementById("export-filtered-data").addEventListener("click", exportFilteredData);
+                document.getElementById("export-aggregation").addEventListener("click", exportAggregation);
+                document.getElementById("export-comparison").addEventListener("click", exportComparison);
                 document.getElementById("refresh-chart").addEventListener("click", regenerateChart);
                 document.getElementById("fullscreen-btn").addEventListener("click", toggleFullscreen);
+
+                // Filter controls
+                document.getElementById("apply-filter").addEventListener("click", applyFilter);
+                document.getElementById("clear-all-filters").addEventListener("click", clearAllFilters);
+                document.getElementById("sort-column").addEventListener("change", applySorting);
+                document.getElementById("sort-direction").addEventListener("change", applySorting);
+
+                // Aggregation controls
+                document.getElementById("calculate-aggregation").addEventListener("click", calculateAggregation);
+
+                // Comparison controls
+                document.getElementById("run-comparison").addEventListener("click", runComparison);
+                document.getElementById("comparison-type").addEventListener("change", updateComparisonOptions);
+            }
+
+            function switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.analysis-tab').forEach(tab => {
+                    tab.classList.remove('active', 'border-indigo-500', 'text-indigo-600', 'dark:text-indigo-400');
+                    tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400', 'dark:hover:text-gray-300');
+                });
+
+                const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+                activeTab.classList.add('active', 'border-indigo-500', 'text-indigo-600', 'dark:text-indigo-400');
+                activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400', 'dark:hover:text-gray-300');
+
+                // Hide all tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // Show selected tab content
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+                currentTab = tabName;
             }
 
             function initializeTheme() {
@@ -550,6 +1067,630 @@
                     '<i class="fas fa-moon text-white"></i>';
             }
 
+            function setupDataTable() {
+                const tableHeader = document.getElementById("table-header");
+                const headerRow = document.createElement("tr");
+
+                fields.forEach(field => {
+                    const th = document.createElement("th");
+                    th.className = "table-cell font-semibold text-left sortable-header";
+                    th.innerHTML = `${field} <i class="fas fa-sort ml-2"></i>`;
+                    th.onclick = () => sortByColumn(field);
+                    headerRow.appendChild(th);
+                });
+
+                tableHeader.appendChild(headerRow);
+                updateDataTable();
+            }
+
+            function updateDataTable() {
+                const tableBody = document.getElementById("table-body");
+                tableBody.innerHTML = "";
+
+                filteredRows.forEach(row => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-gray-50 dark:hover:bg-gray-700";
+
+                    row.forEach(cell => {
+                        const td = document.createElement("td");
+                        td.className = "table-cell";
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+
+                    tableBody.appendChild(tr);
+                });
+
+                // Update counts
+                document.getElementById("showing-count").textContent = filteredRows.length.toLocaleString();
+                document.getElementById("total-count").textContent = rows.length.toLocaleString();
+                document.getElementById("filtered-records").textContent = filteredRows.length.toLocaleString();
+            }
+
+            function applyFilter() {
+                const column = document.getElementById("filter-column").value;
+                const value = document.getElementById("filter-value").value.trim();
+
+                if (!column || !value) {
+                    showNotification("Please select a column and enter a filter value.", "error");
+                    return;
+                }
+
+                const columnIndex = fields.indexOf(column);
+                const filter = { column, value, columnIndex };
+
+                // Check if filter already exists
+                const existingFilterIndex = activeFilters.findIndex(f => f.column === column && f.value === value);
+                if (existingFilterIndex > -1) {
+                    showNotification("This filter is already applied.", "warning");
+                    return;
+                }
+
+                activeFilters.push(filter);
+                applyAllFilters();
+                updateFilterTags();
+
+                // Clear input
+                document.getElementById("filter-value").value = "";
+
+                showNotification("Filter applied successfully!", "success");
+            }
+
+            function applyAllFilters() {
+                filteredRows = rows.filter(row => {
+                    return activeFilters.every(filter => {
+                        const cellValue = row[filter.columnIndex].toString().toLowerCase();
+                        const filterValue = filter.value.toLowerCase();
+                        return cellValue.includes(filterValue);
+                    });
+                });
+
+                updateDataTable();
+                calculateQuickStats();
+            }
+
+            function updateFilterTags() {
+                const filterTags = document.getElementById("filter-tags");
+                filterTags.innerHTML = "";
+
+                activeFilters.forEach((filter, index) => {
+                    const tag = document.createElement("span");
+                    tag.className = "filter-badge";
+                    tag.innerHTML = `${filter.column}: ${filter.value} <i class="fas fa-times ml-1 cursor-pointer" onclick="removeFilter(${index})"></i>`;
+                    filterTags.appendChild(tag);
+                });
+            }
+
+            function removeFilter(index) {
+                activeFilters.splice(index, 1);
+                applyAllFilters();
+                updateFilterTags();
+                showNotification("Filter removed.", "success");
+            }
+
+            window.removeFilter = removeFilter; // Make it globally accessible
+
+            function clearAllFilters() {
+                activeFilters = [];
+                filteredRows = [...rows];
+                updateDataTable();
+                updateFilterTags();
+                calculateQuickStats();
+                showNotification("All filters cleared.", "success");
+            }
+
+            function sortByColumn(column) {
+                const columnIndex = fields.indexOf(column);
+                const currentDirection = document.getElementById("sort-direction").value;
+
+                filteredRows.sort((a, b) => {
+                    let aVal = a[columnIndex];
+                    let bVal = b[columnIndex];
+
+                    // Try to convert to numbers for proper numeric sorting
+                    const aNum = parseFloat(aVal);
+                    const bNum = parseFloat(bVal);
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        aVal = aNum;
+                        bVal = bNum;
+                    }
+
+                    if (currentDirection === 'asc') {
+                        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                    } else {
+                        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                    }
+                });
+
+                updateDataTable();
+                showNotification(`Sorted by ${column}`, "success");
+            }
+
+            function applySorting() {
+                const column = document.getElementById("sort-column").value;
+                if (column) {
+                    sortByColumn(column);
+                }
+            }
+
+            function setupAggregationControls() {
+                const groupBySelect = document.getElementById("group-by-column");
+                const aggregateSelect = document.getElementById("aggregate-column");
+
+                fields.forEach(field => {
+                    const groupOpt = document.createElement("option");
+                    groupOpt.value = field;
+                    groupOpt.textContent = field;
+                    groupBySelect.appendChild(groupOpt);
+
+                    // Only add numeric-looking columns to aggregate
+                    const isNumeric = rows.some(row => !isNaN(parseFloat(row[fields.indexOf(field)])));
+                    if (isNumeric) {
+                        const aggOpt = document.createElement("option");
+                        aggOpt.value = field;
+                        aggOpt.textContent = field;
+                        aggregateSelect.appendChild(aggOpt);
+                    }
+                });
+            }
+
+            function calculateAggregation() {
+                const groupByColumn = document.getElementById("group-by-column").value;
+                const aggregateColumn = document.getElementById("aggregate-column").value;
+                const aggregateFunction = document.getElementById("aggregate-function").value;
+
+                if (!groupByColumn) {
+                    showNotification("Please select a group by column.", "error");
+                    return;
+                }
+
+                const groupByIndex = fields.indexOf(groupByColumn);
+                const aggregateIndex = aggregateColumn ? fields.indexOf(aggregateColumn) : -1;
+
+                // Group data
+                const groups = {};
+                filteredRows.forEach(row => {
+                    const groupValue = row[groupByIndex];
+                    if (!groups[groupValue]) {
+                        groups[groupValue] = [];
+                    }
+                    groups[groupValue].push(row);
+                });
+
+                // Calculate aggregations
+                aggregationResults = [];
+                Object.keys(groups).forEach(groupValue => {
+                    const groupRows = groups[groupValue];
+                    let result = { group: groupValue };
+
+                    if (aggregateFunction === 'count') {
+                        result.value = groupRows.length;
+                    } else if (aggregateIndex > -1) {
+                        const values = groupRows.map(row => parseFloat(row[aggregateIndex])).filter(val => !isNaN(val));
+
+                        switch (aggregateFunction) {
+                            case 'sum':
+                                result.value = values.reduce((a, b) => a + b, 0);
+                                break;
+                            case 'avg':
+                                result.value = values.reduce((a, b) => a + b, 0) / values.length;
+                                break;
+                            case 'min':
+                                result.value = Math.min(...values);
+                                break;
+                            case 'max':
+                                result.value = Math.max(...values);
+                                break;
+                        }
+                    }
+
+                    aggregationResults.push(result);
+                });
+
+                updateAggregationTable();
+                showNotification("Aggregation calculated successfully!", "success");
+            }
+
+            function updateAggregationTable() {
+                const header = document.getElementById("aggregation-header");
+                const body = document.getElementById("aggregation-body");
+
+                // Clear existing content
+                header.innerHTML = "";
+                body.innerHTML = "";
+
+                if (aggregationResults.length === 0) return;
+
+                // Create header
+                const headerRow = document.createElement("tr");
+                const groupHeader = document.createElement("th");
+                groupHeader.className = "table-cell font-semibold text-left";
+                groupHeader.textContent = "Group";
+                headerRow.appendChild(groupHeader);
+
+                const valueHeader = document.createElement("th");
+                valueHeader.className = "table-cell font-semibold text-left";
+                valueHeader.textContent = "Value";
+                headerRow.appendChild(valueHeader);
+
+                header.appendChild(headerRow);
+
+                // Create body
+                aggregationResults.forEach(result => {
+                    const row = document.createElement("tr");
+                    row.className = "hover:bg-gray-50 dark:hover:bg-gray-700";
+
+                    const groupCell = document.createElement("td");
+                    groupCell.className = "table-cell";
+                    groupCell.textContent = result.group;
+                    row.appendChild(groupCell);
+
+                    const valueCell = document.createElement("td");
+                    valueCell.className = "table-cell font-medium";
+                    valueCell.textContent = typeof result.value === 'number' ? result.value.toFixed(2) : result.value;
+                    row.appendChild(valueCell);
+
+                    body.appendChild(row);
+                });
+            }
+
+            function calculateQuickStats() {
+                // Find numeric columns and calculate stats
+                const numericColumns = fields.filter(field => {
+                    const fieldIndex = fields.indexOf(field);
+                    return filteredRows.some(row => !isNaN(parseFloat(row[fieldIndex])));
+                });
+
+                if (numericColumns.length > 0) {
+                    const firstNumericColumn = numericColumns[0];
+                    const columnIndex = fields.indexOf(firstNumericColumn);
+                    const values = filteredRows.map(row => parseFloat(row[columnIndex])).filter(val => !isNaN(val));
+
+                    if (values.length > 0) {
+                        const sum = values.reduce((a, b) => a + b, 0);
+                        const avg = sum / values.length;
+                        const min = Math.min(...values);
+                        const max = Math.max(...values);
+
+                        document.getElementById("quick-sum").textContent = sum.toFixed(2);
+                        document.getElementById("quick-avg").textContent = avg.toFixed(2);
+                        document.getElementById("quick-min").textContent = min.toFixed(2);
+                        document.getElementById("quick-max").textContent = max.toFixed(2);
+                    }
+                }
+            }
+
+            function setupComparisonControls() {
+                const compareSelect = document.getElementById("compare-column");
+
+                fields.forEach(field => {
+                    const option = document.createElement("option");
+                    option.value = field;
+                    option.textContent = field;
+                    compareSelect.appendChild(option);
+                });
+
+                updateComparisonOptions();
+            }
+
+            function updateComparisonOptions() {
+                const comparisonType = document.getElementById("comparison-type").value;
+                const optionsContainer = document.getElementById("comparison-options");
+                optionsContainer.innerHTML = "";
+
+                switch (comparisonType) {
+                    case 'percentile':
+                        optionsContainer.innerHTML = `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Percentile</label>
+                                <select id="percentile-value" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="25">25th Percentile</option>
+                                    <option value="50">50th Percentile (Median)</option>
+                                    <option value="75">75th Percentile</option>
+                                    <option value="90">90th Percentile</option>
+                                    <option value="95">95th Percentile</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'distribution':
+                        optionsContainer.innerHTML = `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bins</label>
+                                <input type="number" id="distribution-bins" value="10" min="5" max="50" 
+                                    class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                            </div>
+                        `;
+                        break;
+                    case 'outlier':
+                        optionsContainer.innerHTML = `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Method</label>
+                                <select id="outlier-method" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <option value="iqr">IQR Method</option>
+                                    <option value="zscore">Z-Score Method</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                }
+            }
+
+            function runComparison() {
+                const compareColumn = document.getElementById("compare-column").value;
+                const comparisonType = document.getElementById("comparison-type").value;
+
+                if (!compareColumn) {
+                    showNotification("Please select a column to compare.", "error");
+                    return;
+                }
+
+                const columnIndex = fields.indexOf(compareColumn);
+                const values = filteredRows.map(row => parseFloat(row[columnIndex])).filter(val => !isNaN(val));
+
+                if (values.length === 0) {
+                    showNotification("No numeric values found in the selected column.", "error");
+                    return;
+                }
+
+                values.sort((a, b) => a - b);
+
+                switch (comparisonType) {
+                    case 'percentile':
+                        runPercentileAnalysis(values);
+                        break;
+                    case 'distribution':
+                        runDistributionAnalysis(values);
+                        break;
+                    case 'outlier':
+                        runOutlierDetection(values);
+                        break;
+                    case 'correlation':
+                        runCorrelationAnalysis();
+                        break;
+                }
+
+                showNotification("Analysis completed successfully!", "success");
+            }
+
+            function runPercentileAnalysis(values) {
+                const percentile = parseInt(document.getElementById("percentile-value").value);
+                const index = Math.ceil((percentile / 100) * values.length) - 1;
+                const percentileValue = values[index];
+
+                const belowPercentile = values.filter(v => v <= percentileValue).length;
+                const abovePercentile = values.length - belowPercentile;
+
+                updateComparisonSummary(values);
+
+                const resultsContainer = document.getElementById("comparison-results");
+                resultsContainer.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-4">${percentile}th Percentile Analysis</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="text-center">
+                                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${percentileValue.toFixed(2)}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Percentile Value</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">${belowPercentile}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Below/At Percentile</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">${abovePercentile}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Above Percentile</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                The ${percentile}th percentile value is ${percentileValue.toFixed(2)}. This means that ${percentile}% of the data falls below or at this value.
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function runDistributionAnalysis(values) {
+                const bins = parseInt(document.getElementById("distribution-bins").value);
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const binSize = (max - min) / bins;
+
+                const histogram = Array(bins).fill(0);
+                values.forEach(value => {
+                    const binIndex = Math.min(Math.floor((value - min) / binSize), bins - 1);
+                    histogram[binIndex]++;
+                });
+
+                updateComparisonSummary(values);
+
+                const resultsContainer = document.getElementById("comparison-results");
+                let histogramBars = '';
+                histogram.forEach((count, index) => {
+                    const binStart = (min + index * binSize).toFixed(2);
+                    const binEnd = (min + (index + 1) * binSize).toFixed(2);
+                    const percentage = ((count / values.length) * 100).toFixed(1);
+                    histogramBars += `
+                        <div class="flex items-center space-x-4 py-2">
+                            <div class="w-24 text-sm text-gray-600 dark:text-gray-400">${binStart}-${binEnd}</div>
+                            <div class="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-4 relative">
+                                <div class="bg-blue-500 h-4 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                            <div class="w-16 text-sm text-gray-600 dark:text-gray-400 text-right">${count} (${percentage}%)</div>
+                        </div>
+                    `;
+                });
+
+                resultsContainer.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-4">Distribution Analysis (${bins} bins)</h4>
+                            <div class="space-y-2">${histogramBars}</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                This histogram shows how your data is distributed across ${bins} equal-width bins from ${min.toFixed(2)} to ${max.toFixed(2)}.
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function runOutlierDetection(values) {
+                const method = document.getElementById("outlier-method").value;
+                let outliers = [];
+
+                if (method === 'iqr') {
+                    const q1Index = Math.floor(values.length * 0.25);
+                    const q3Index = Math.floor(values.length * 0.75);
+                    const q1 = values[q1Index];
+                    const q3 = values[q3Index];
+                    const iqr = q3 - q1;
+                    const lowerBound = q1 - 1.5 * iqr;
+                    const upperBound = q3 + 1.5 * iqr;
+
+                    outliers = values.filter(v => v < lowerBound || v > upperBound);
+                } else if (method === 'zscore') {
+                    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                    const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+                    const stdDev = Math.sqrt(variance);
+
+                    outliers = values.filter(v => Math.abs((v - mean) / stdDev) > 2);
+                }
+
+                updateComparisonSummary(values);
+                document.getElementById("comparison-outliers").textContent = outliers.length;
+
+                const resultsContainer = document.getElementById("comparison-results");
+                resultsContainer.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-4">Outlier Detection (${method.toUpperCase()} Method)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="text-center">
+                                    <p class="text-2xl font-bold text-red-600 dark:text-red-400">${outliers.length}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Outliers Found</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">${((outliers.length / values.length) * 100).toFixed(1)}%</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Of Total Data</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <h5 class="font-semibold mb-2">Outlier Values:</h5>
+                            <div class="flex flex-wrap gap-2">
+                                ${outliers.slice(0, 20).map(val => `<span class="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded text-sm">${val.toFixed(2)}</span>`).join('')}
+                                ${outliers.length > 20 ? `<span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded text-sm">+${outliers.length - 20} more</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function runCorrelationAnalysis() {
+                // Get all numeric columns
+                const numericColumns = fields.filter(field => {
+                    const fieldIndex = fields.indexOf(field);
+                    return filteredRows.some(row => !isNaN(parseFloat(row[fieldIndex])));
+                });
+
+                if (numericColumns.length < 2) {
+                    showNotification("Need at least 2 numeric columns for correlation analysis.", "error");
+                    return;
+                }
+
+                const correlationMatrix = [];
+                numericColumns.forEach((col1, i) => {
+                    const row = [];
+                    const col1Index = fields.indexOf(col1);
+                    const values1 = filteredRows.map(row => parseFloat(row[col1Index])).filter(val => !isNaN(val));
+
+                    numericColumns.forEach((col2, j) => {
+                        const col2Index = fields.indexOf(col2);
+                        const values2 = filteredRows.map(row => parseFloat(row[col2Index])).filter(val => !isNaN(val));
+
+                        if (i === j) {
+                            row.push(1);
+                        } else {
+                            const correlation = calculateCorrelation(values1, values2);
+                            row.push(correlation);
+                        }
+                    });
+                    correlationMatrix.push(row);
+                });
+
+                const resultsContainer = document.getElementById("comparison-results");
+                let matrixHTML = '<table class="min-w-full"><thead><tr><th class="table-cell font-semibold">Column</th>';
+
+                numericColumns.forEach(col => {
+                    matrixHTML += `<th class="table-cell font-semibold text-center">${col}</th>`;
+                });
+                matrixHTML += '</tr></thead><tbody>';
+
+                correlationMatrix.forEach((row, i) => {
+                    matrixHTML += `<tr><td class="table-cell font-medium">${numericColumns[i]}</td>`;
+                    row.forEach(corr => {
+                        const absCorr = Math.abs(corr);
+                        let colorClass = 'bg-gray-100 dark:bg-gray-700';
+                        if (absCorr > 0.7) colorClass = 'bg-red-200 dark:bg-red-900/50';
+                        else if (absCorr > 0.5) colorClass = 'bg-orange-200 dark:bg-orange-900/50';
+                        else if (absCorr > 0.3) colorClass = 'bg-yellow-200 dark:bg-yellow-900/50';
+
+                        matrixHTML += `<td class="table-cell text-center ${colorClass}">${corr.toFixed(3)}</td>`;
+                    });
+                    matrixHTML += '</tr>';
+                });
+                matrixHTML += '</tbody></table>';
+
+                resultsContainer.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-indigo-800 dark:text-indigo-200 mb-4">Correlation Matrix</h4>
+                            <div class="overflow-x-auto">${matrixHTML}</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                <strong>Correlation strength:</strong> |0.7-1.0| = Strong, |0.5-0.7| = Moderate, |0.3-0.5| = Weak, |0.0-0.3| = Very weak
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function calculateCorrelation(x, y) {
+                const n = Math.min(x.length, y.length);
+                if (n < 2) return 0;
+
+                const sumX = x.slice(0, n).reduce((a, b) => a + b, 0);
+                const sumY = y.slice(0, n).reduce((a, b) => a + b, 0);
+                const sumXY = x.slice(0, n).reduce((sum, xi, i) => sum + xi * y[i], 0);
+                const sumX2 = x.slice(0, n).reduce((sum, xi) => sum + xi * xi, 0);
+                const sumY2 = y.slice(0, n).reduce((sum, yi) => sum + yi * yi, 0);
+
+                const numerator = n * sumXY - sumX * sumY;
+                const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+                return denominator === 0 ? 0 : numerator / denominator;
+            }
+
+            function updateComparisonSummary(values) {
+                values.sort((a, b) => a - b);
+                const median = values.length % 2 === 0 ?
+                    (values[values.length / 2 - 1] + values[values.length / 2]) / 2 :
+                    values[Math.floor(values.length / 2)];
+
+                const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+                const stdDev = Math.sqrt(variance);
+
+                document.getElementById("comparison-median").textContent = median.toFixed(2);
+                document.getElementById("comparison-stddev").textContent = stdDev.toFixed(2);
+            }
+
             function generateChart() {
                 const xField = xSelect.value;
                 const checkedBoxes = yContainer.querySelectorAll("input[type=checkbox]:checked");
@@ -566,10 +1707,8 @@
                     return;
                 }
 
-                // Prepare data
+                // Use filtered data for chart generation
                 const chartData = prepareChartData(xField, yFields, chartType);
-
-                // Create chart
                 createChart(chartData, chartType);
 
                 // Show chart section with animation
@@ -582,12 +1721,12 @@
             function prepareChartData(xField, yFields, chartType) {
                 const xIndex = fields.indexOf(xField);
                 const yIndices = yFields.map(y => fields.indexOf(y));
-                const xLabels = rows.map(r => r[xIndex]);
+                const xLabels = filteredRows.map(r => r[xIndex]); // Use filtered data
                 const colors = colorPalettes[currentColorPalette];
 
                 const datasets = yFields.map((yName, i) => {
                     const yi = yIndices[i];
-                    const data = rows.map(r => {
+                    const data = filteredRows.map(r => { // Use filtered data
                         const val = r[yi];
                         const num = parseFloat(val);
                         return isNaN(num) ? 0 : num;
@@ -728,17 +1867,44 @@
             }
 
             function exportData() {
-                if (!fields || !rows) {
-                    showNotification("No data available to export.", "error");
+                exportCSV(rows, fields, "db-genie-data");
+            }
+
+            function exportFilteredData() {
+                exportCSV(filteredRows, fields, "db-genie-filtered-data");
+            }
+
+            function exportAggregation() {
+                if (aggregationResults.length === 0) {
+                    showNotification("No aggregation results to export.", "error");
                     return;
                 }
 
-                let csv = fields.join(',') + '\n';
-                csv += rows.map(row => row.join(',')).join('\n');
+                const headers = ['Group', 'Value'];
+                const data = aggregationResults.map(result => [result.group, result.value]);
+                exportCSV(data, headers, "db-genie-aggregation");
+            }
+
+            function exportComparison() {
+                if (Object.keys(comparisonResults).length === 0) {
+                    showNotification("No comparison results to export.", "error");
+                    return;
+                }
+
+                const data = [['Analysis Type', 'Result']];
+                Object.entries(comparisonResults).forEach(([key, value]) => {
+                    data.push([key, value]);
+                });
+                exportCSV(data.slice(1), ['Analysis Type', 'Result'], "db-genie-comparison");
+            }
+
+            function exportCSV(data, headers, filename) {
+                let csv = headers.join(',') + '\n';
+                csv += data.map(row => row.join(',')).join('\n');
 
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const link = document.createElement('a');
-                link.download = `db-genie-data-${Date.now()}.csv`;
+                link.download = `${filename}-${Date.now()}.csv`;
                 link.href = URL.createObjectURL(blob);
                 link.click();
 
@@ -761,6 +1927,9 @@
                 if (type === 'success') {
                     notification.className += ' bg-green-500 text-white';
                     notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+                } else if (type === 'warning') {
+                    notification.className += ' bg-yellow-500 text-white';
+                    notification.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>${message}`;
                 } else {
                     notification.className += ' bg-red-500 text-white';
                     notification.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${message}`;
@@ -777,7 +1946,9 @@
                 setTimeout(() => {
                     notification.classList.add('translate-x-full');
                     setTimeout(() => {
-                        document.body.removeChild(notification);
+                        if (document.body.contains(notification)) {
+                            document.body.removeChild(notification);
+                        }
                     }, 300);
                 }, 3000);
             }

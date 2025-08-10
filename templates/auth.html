@@ -4,118 +4,226 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DB-Genie</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <title>DB-Genie | Secure Access</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
     body {
-      background-image: url("/static/images/authbg.jpg");
+      background-color: #0c0a09;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+    }
+
+    .background-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: -1;
     }
 
     .auth-container {
-      max-width: 20rem;
+      background: rgba(28, 25, 23, 0.6);
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    .form-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #fafaf9;
+      background: -webkit-linear-gradient(45deg, #a855f7, #fde047);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .form-input {
+      background-color: rgba(39, 39, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f4f4f5;
+      padding: 0.8rem 1rem;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-input::placeholder {
+      color: #a1a1aa;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #a855f7;
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3);
+    }
+
+    .primary-btn {
+      background: linear-gradient(90deg, #a855f7, #7c3aed);
+      color: white;
+      font-weight: 600;
+      padding: 0.8rem 1rem;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      transform-style: preserve-3d;
+    }
+
+    .primary-btn:hover {
+      box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .primary-btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .google-btn {
+      background-color: #ffffff;
+      color: #18181b;
+      font-weight: 500;
+      padding: 0.8rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .google-btn:hover {
+      background-color: #f3f4f6;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-link {
+      color: #a1a1aa;
+      transition: color 0.3s ease;
+    }
+
+    .form-link:hover {
+      color: #d8b4fe;
     }
 
     .notification {
       position: fixed;
       top: 20px;
       right: 20px;
-      background-color: #333;
+      background-color: rgba(28, 25, 23, 0.9);
+      backdrop-filter: blur(10px);
       color: #fff;
       padding: 12px 20px;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       opacity: 0;
-      transition: opacity 0.3s ease-in-out;
+      transform: translateX(100%);
+      transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
     .notification.show {
       opacity: 1;
+      transform: translateX(0);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
   </style>
 </head>
 
-<body class="font-light flex items-center justify-center h-screen bg-black bg-opacity-75">
-  <div class="w-full flex flex-col lg:flex-row justify-center items-center gap-10">
-    <div id="login-container"
-      class="auth-container visible w-full max-w-sm sm:px-6 sm:py-8 px-4 py-6 bg-gray-900 bg-opacity-80 rounded-lg shadow-lg relative">
-      <div
-        class="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black rounded-lg opacity-75 blur-2xl">
-      </div>
-      <div class="relative z-10">
-        <h2 class="text-lg font-semibold mb-6 text-center text-white">
-          DB-Genie
-        </h2>
-        <form id="login-form" class="flex flex-col gap-4">
-          <input type="email" id="login-email" placeholder="Email" required
-            class="px-4 py-3 bg-gray-800 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gray-600" />
-          <input type="password" id="login-password" placeholder="Password" required
-            class="px-4 py-3 bg-gray-800 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gray-600" />
-          <button type="submit"
-            class="relative px-4 py-3 bg-gray-700 rounded-md text-white hover:bg-gray-800 active:scale-95 transform transition-all duration-300 overflow-hidden group">
-            <span class="relative z-10">Login</span>
-            <div
-              class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0 h-0 bg-white bg-opacity-20 rounded-full transition-all duration-300 group-hover:w-64 group-hover:h-64">
-            </div>
+<body class="flex items-center justify-center h-screen">
+
+  <video autoplay loop muted playsinline class="background-video">
+    <source src="/static/DB-Genie.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <div class="w-full flex flex-col lg:flex-row justify-center items-center gap-10 p-4">
+
+    <div id="login-container" class="auth-container w-full max-w-sm">
+      <div class="relative z-10 p-6 sm:p-8">
+        <h2 class="form-title">DB-Genie Login</h2>
+        <form id="login-form" class="flex flex-col gap-5">
+          <input type="email" id="login-email" placeholder="Email" required class="form-input" />
+          <input type="password" id="login-password" placeholder="Password" required class="form-input" />
+          <button type="submit" class="primary-btn">Login</button>
+
+          <div class="relative flex py-2 items-center">
+            <div class="flex-grow border-t border-gray-600"></div>
+            <span class="flex-shrink mx-4 text-gray-400 text-xs">OR</span>
+            <div class="flex-grow border-t border-gray-600"></div>
+          </div>
+
+          <button id="google-login" type="button" class="google-btn">
+            <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google Logo" class="h-5" />
+            Sign in with Google
           </button>
 
-          <button id="google-login" type="button"
-            class="px-4 py-3 bg-white text-gray-800 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors duration-300 active:scale-95 transform transition-transform duration-300">
-            <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google Logo" class="h-5 mr-2" />
-            Login with Google
-          </button>
-
-          <a href="#" id="forgot-password"
-            class="text-gray-400 hover:text-gray-300 text-center transition-colors duration-300">Forgot Password?</a>
+          <a href="#" id="forgot-password" class="text-sm text-center form-link mt-2">Forgot Password?</a>
         </form>
-        <p class="mt-4 text-center text-white">
+        <p class="mt-6 text-center text-sm text-gray-300">
           Don't have an account?
-          <a href="#" id="show-register"
-            class="text-gray-400 hover:text-gray-300 transition-colors duration-300">Register</a>
+          <a href="#" id="show-register" class="font-semibold form-link">Register Now</a>
         </p>
       </div>
     </div>
 
-    <div id="register-container"
-      class="auth-container hidden w-full max-w-sm sm:px-6 sm:py-8 px-4 py-6 bg-gray-900 bg-opacity-80 rounded-lg shadow-lg relative">
-      <div
-        class="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black rounded-lg opacity-75 blur-2xl">
-      </div>
-      <div class="relative z-10">
-        <h2 class="text-2xl font-semibold mb-6 text-center text-white">
-          DB-Genie
-        </h2>
-        <form id="register-form" class="flex flex-col gap-4">
-          <input type="email" id="register-email" placeholder="Email" required
-            class="px-4 py-3 bg-gray-800 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gray-600" />
-          <input type="password" id="register-password" placeholder="Password" required
-            class="px-4 py-3 bg-gray-800 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gray-600" />
-          <button type="submit"
-            class="relative px-4 py-3 bg-gray-700 rounded-md text-white hover:bg-gray-600 transition-colors duration-300 overflow-hidden group">
-            <span class="relative z-10">Register</span>
-            <div
-              class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0 h-0 bg-white bg-opacity-20 rounded-full transition-all duration-300 group-hover:w-64 group-hover:h-64">
-            </div>
-          </button>
-          <button id="google-register" type="button"
-            class="px-4 py-3 bg-white text-gray-800 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors duration-300">
-            <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google Logo" class="h-5 mr-2" />
+    <div id="register-container" class="auth-container hidden w-full max-w-sm">
+      <div class="relative z-10 p-6 sm:p-8">
+        <h2 class="form-title">Create Account</h2>
+        <form id="register-form" class="flex flex-col gap-5">
+          <input type="email" id="register-email" placeholder="Email" required class="form-input" />
+          <input type="password" id="register-password" placeholder="Password" required class="form-input" />
+          <button type="submit" class="primary-btn">Register</button>
+
+          <div class="relative flex py-2 items-center">
+            <div class="flex-grow border-t border-gray-600"></div>
+            <span class="flex-shrink mx-4 text-gray-400 text-xs">OR</span>
+            <div class="flex-grow border-t border-gray-600"></div>
+          </div>
+
+          <button id="google-register" type="button" class="google-btn">
+            <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google Logo" class="h-5" />
             Register with Google
           </button>
         </form>
-        <p class="mt-4 text-center text-white">
+        <p class="mt-6 text-center text-sm text-gray-300">
           Already have an account?
-          <a href="#" id="show-login" class="text-gray-400 hover:text-gray-300 transition-colors duration-300">Login</a>
+          <a href="#" id="show-login" class="font-semibold form-link">Login Here</a>
         </p>
       </div>
     </div>
   </div>
 
   <div id="notification" class="notification"></div>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Add this line to include the simplified auth.js file -->
+
   <script type="module" src="/static/auth.js"></script>
 </body>
 

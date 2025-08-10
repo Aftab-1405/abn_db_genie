@@ -7,7 +7,7 @@ import {
   scrollToBottom,
   showNotification,
 } from "./ui.js";
-import { handleAIResponse, sendUserInput, handleError } from "./chat.js";
+import { sendUserInput } from "./chat.js";
 
 // Reusable API response handler with error notification
 const handleApiResponse = async (fetchPromise, errorMessage, elements) => {

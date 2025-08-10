@@ -11,7 +11,7 @@ import { scrollToBottom } from "../utils/scroll-utils.js";
 export function createSenderImage(sender) {
   const img = document.createElement("img");
   img.className =
-    "w-6 h-6 md:w-7 md:h-7 rounded-full flex-shrink-0 mt-[2px] transition-all duration-300";
+    "w-6 h-6 md:w-7 md:h-7 rounded-full flex-shrink-0 transition-all duration-300 mt-3";
   img.src =
     sender === "user"
       ? "/static/images/user.png"

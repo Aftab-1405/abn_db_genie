@@ -2,7 +2,7 @@
 
 // 1) Import the event‐binder, database fetcher, and the executor from sql.js
 import { initializeApp, initializeEventBindings } from "./events.js";
-import { fetchDatabases, executeSqlString } from "./sql.js";
+import { executeSqlString } from "./sql.js";
 
 // 2) Build the `elements` object with all the needed DOM references
 export const elements = {

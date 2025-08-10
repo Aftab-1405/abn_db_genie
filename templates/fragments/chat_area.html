@@ -1,13 +1,16 @@
-<!-- Main Chat Area - Using Centralized Theming -->
-<div class="flex-grow overflow-y-auto overflow-x-hidden" id="chat-container">
+<!-- Chat Area with Consistent Width -->
+<div class="flex-grow overflow-y-auto" id="chat-container">
     <div id="ai-logo-container" class="w-full h-full flex flex-col justify-center items-center">
         <img id="ai-logo" src="/static/images/Brand Product.png" alt="AI Logo"
             class="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover shadow-glow animate-slow-rotate" loading="lazy"
             width="40" height="40">
         <strong class="theme-text-primary text-shadow-glow text-sm md:text-base">DB-Genie</strong>
     </div>
-    <div id="chat"
-        class="w-full max-w-full md:w-3/5 mx-auto flex flex-col gap-2 chat-prose text-sm md:text-base overflow-x-hidden">
-        <!-- Chat bubbles will appear here -->
+
+    <!-- Wrapper with exact same width system as footer -->
+    <div class="w-full max-w-full md:w-3/5 mx-auto px-4 md:px-0">
+        <div id="chat" class="w-full flex flex-col gap-2 chat-prose text-sm md:text-base min-w-0">
+            <!-- Chat bubbles will appear here -->
+        </div>
     </div>
 </div>

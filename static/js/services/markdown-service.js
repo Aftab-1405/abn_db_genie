@@ -160,25 +160,27 @@ class MarkdownService {
   // Ultra-fast partial markdown processing with smart caching
   processPartialMarkdown(partialContent, fullContent) {
     const cacheKey = `partial_${partialContent}`;
-    if (this.partialCache.has(cacheKey)) {
-      return this.partialCache.get(cacheKey);
-    }
+    if (this.partialCache.has(cacheKey)) return this.partialCache.get(cacheKey);
 
-    // Clean partial cache if too large
-    if (this.partialCache.size > this.maxCacheSize) {
-      const firstKey = this.partialCache.keys().next().value;
-      this.partialCache.delete(firstKey);
+    // For very short strings do a quick inline parse to avoid heavy DOM ops
+    try {
+      const dirtyHtml = marked.parse(partialContent, {
+        gfm: true,
+        breaks: true,
+        sanitize: false,
+      });
+      const safeHtml = DOMPurify.sanitize(dirtyHtml);
+      this.partialCache.set(cacheKey, safeHtml);
+      return safeHtml;
+    } catch (e) {
+      // fallback: escape the text
+      const escaped = partialContent
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      this.partialCache.set(cacheKey, escaped);
+      return escaped;
     }
-
-    // For very short content, process directly without caching
-    if (partialContent.length < 20) {
-      return this.processFullMarkdown(partialContent);
-    }
-
-    // Smart incremental processing for longer content
-    const result = this.processFullMarkdown(partialContent);
-    this.partialCache.set(cacheKey, result);
-    return result;
   }
 
   // Clear all caches for memory management
