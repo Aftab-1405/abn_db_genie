@@ -1,11 +1,11 @@
-<!-- Header -->
-<header class="p-2 sm:p-3 flex items-center justify-between w-full min-w-0">
+<!-- FIXED header.html -->
+<header class="p-2 sm:p-3 flex items-center justify-between w-full min-w-0 app-surface">
     <div class="flex items-center min-w-0">
-        <button id="sidebar-toggle" class="p-2 mr-2 md:hidden" aria-label="Toggle Sidebar" aria-expanded="false">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
-                viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+        <button id="sidebar-toggle" class="app-button p-2 mr-2 md:hidden rounded-full" aria-label="Toggle Sidebar"
+            aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 app-text-secondary hover:app-text"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16">
                 </path>
             </svg>
         </button>
@@ -13,38 +13,30 @@
             height="24">
     </div>
 
-    <!-- SQL Editor Icon & Profile -->
+    <!-- SQL Editor Icon & Profile with consistent sizing and alignment -->
     <div class="flex items-center gap-3 min-w-0">
-        <!-- SQL Editor Toggle -->
-        <button id="sql-editor-toggle"
-            class="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition duration-200"
-            title="SQL Editor (AI + CLI)">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <!-- Terminal outline -->
-                <rect x="2" y="4" width="20" height="16" rx="2" ry="2" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                <!-- Left bracket -->
-                <path d="M8 9l-2 3l2 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                <!-- Right bracket -->
-                <path d="M16 9l2 3l-2 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                <!-- Underscore prompt representing CLI -->
-                <path d="M11 15h2" stroke-width="2" stroke-linecap="round" />
+        <!-- SQL Editor Toggle with database-relevant SVG -->
+        <button id="sql-editor-toggle" class="app-button p-2 rounded-full shadow-depth-1 hover:shadow-depth-2"
+            title="SQL Editor">
+            <!-- Database/SQL relevant SVG icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 app-text-secondary hover:app-text" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
         </button>
 
-        <!-- Profile & Settings -->
+        <!-- Profile & Settings with consistent sizing -->
         <div class="relative min-w-0">
-            <button id="profile-btn">
-                <img src="/static/images/user.png" alt="User Profile Picture" class="w-7 h-7 rounded-full"
-                    loading="lazy" width="28" height="28">
+            <button id="profile-btn" class="app-button flex items-center justify-center p-0.5 rounded-full">
+                <!-- Consistent sizing with SQL editor button -->
+                <img src="/static/images/user.png" alt="User Profile Picture" class="w-6 h-6 rounded-full object-cover"
+                    loading="lazy" width="24" height="24">
             </button>
             <div id="profile-menu"
-                class="absolute w-48 md:w-52 h-24 md:h-28 p-2 right-0 mt-2 bg-white dark:bg-neutral-800 rounded-md shadow-lg opacity-0 transition-all duration-300 origin-top-right transform z-10 invisible border border-neutral-200 dark:border-neutral-600">
+                class="absolute w-48 md:w-52 h-24 md:h-28 p-2 right-0 mt-2 app-surface shadow-depth-3 rounded-md opacity-0 app-transition origin-top-right transform z-10 invisible">
                 <div class="py-1">
-                    <a href="#"
-                        class="flex items-center px-4 py-2 text-sm md:text-base text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg">
+                    <a href="#" class="flex items-center px-4 py-2 text-sm md:text-base app-text app-button rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2" viewBox="0 0 20 20"
                             fill="currentColor">
                             <path fill-rule="evenodd"
@@ -53,8 +45,7 @@
                         </svg>
                         Settings
                     </a>
-                    <a href="#"
-                        class="flex items-center px-4 py-2 text-sm md:text-base text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg">
+                    <a href="#" class="flex items-center px-4 py-2 text-sm md:text-base app-text app-button rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2" viewBox="0 0 20 20"
                             fill="currentColor">
                             <path fill-rule="evenodd"
@@ -68,10 +59,3 @@
         </div>
     </div>
 </header>
-
-<!-- Syntax highlighting -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>

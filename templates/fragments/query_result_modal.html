@@ -1,57 +1,73 @@
-<!-- QUERY RESULT MODAL - CLEANED -->
+<!-- Fixed Query Result Modal -->
 <div id="query-result-modal"
-    class="hidden fixed inset-0 items-center justify-center z-40 p-2 sm:p-4 bg-black bg-opacity-50">
+    class="hidden fixed inset-0 z-40 items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
     <div
-        class="flex flex-col relative theme-surface-secondary rounded-2xl w-full h-full sm:w-4/5 sm:h-4/5 theme-border border min-w-0 max-w-full">
+        class="flex flex-col relative app-surface-secondary rounded-2xl w-full max-w-6xl h-full sm:h-auto sm:max-h-[90vh] app-border border shadow-glass-strong">
 
-        <!-- Header and Buttons -->
         <div
-            class="flex items-center justify-between px-4 py-2 theme-surface-primary rounded-t-2xl theme-border border-b">
-            <div class="flex items-center">
+            class="flex items-center justify-between flex-shrink-0 px-4 py-3 app-surface rounded-t-2xl app-border border-b">
+            <div class="flex items-center gap-3">
                 <img src="/static/images/Brand Product.png" alt="AI Logo"
-                    class="w-7 h-7 rounded-full object-cover mr-3 shadow-glow animate-slow-rotate" loading="lazy"
+                    class="w-7 h-7 rounded-full object-cover shadow-glow-brand animate-pulse-glow" loading="lazy"
                     width="28" height="28">
-                <span class="theme-text-primary font-bold">DB-Genie</span>
+                <span class="app-text font-bold text-base gradient-text">DB-Genie</span>
             </div>
             <div class="flex gap-2">
                 <button id="export-csv-button" type="button"
-                    class="focus:outline-none text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs md:text-sm px-2 py-1 md:px-3 md:py-1.5"
+                    class="app-button px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-brand-purple-500 focus:ring-offset-2 bg-brand-purple-500 text-white hover:bg-brand-purple-600 border-brand-purple-500"
                     onclick="exportTableToCSV('query-result.csv')">
-                    Export to CSV
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                    Export
                 </button>
                 <button id="query-result-modal-close-button" type="button"
-                    class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs md:text-sm px-2 py-1 md:px-3 md:py-1.5"
+                    class="app-button px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 border-red-600"
                     onclick="hideModal()">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                     Close
                 </button>
             </div>
         </div>
 
-        <!-- Table Section -->
-        <div class="overflow-auto flex-grow p-2 sm:p-4 prose prose-sm dark:prose-dark max-w-none min-w-0">
-            <table id="query-result"
-                class="query-result-table w-full border-collapse theme-surface-secondary theme-border border min-w-0 max-w-full">
-                <tbody class="theme-border divide-y">
-                    <!-- Table content populated by JS -->
-                </tbody>
-            </table>
-
-            <!-- "Visualize" button -->
-            <div id="show-viz-container" class="mt-4 flex justify-center">
-                <button id="show-viz-btn"
-                    class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm">
-                    Visualize
-                </button>
+        <div class="overflow-auto flex-grow p-4 min-h-0 app-surface">
+            <div class="overflow-x-auto app-scrollbar">
+                <table id="query-result"
+                    class="query-result-table w-full border-collapse min-w-full app-surface rounded-lg overflow-hidden shadow-depth-2">
+                    <thead class="app-surface-secondary">
+                    </thead>
+                    <tbody class="app-border divide-y app-surface">
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Footer Note -->
-        <div class="px-4 py-2 theme-surface-primary rounded-b-2xl text-center theme-border border-t">
-            <p class="theme-text-primary text-xs md:text-sm">
-                <strong class="font-bold">Note:</strong> The information
-                provided by DB-Genie may be incorrect, please cross-verify with
-                your actual database.
+        <div
+            class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 app-surface rounded-b-2xl text-center app-border border-t flex-shrink-0">
+            <p class="app-text text-xs md:text-sm text-left flex items-center gap-2">
+                <svg class="w-4 h-4 text-brand-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <strong>Note:</strong> DB-Genie's results may be incorrect. Always verify with your database.
             </p>
+            <div id="show-viz-container">
+                <button id="show-viz-btn"
+                    class="app-button bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-semibold app-transition w-full sm:w-auto border border-green-600 shadow-depth-1 hover:shadow-depth-2">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    Visualize
+                </button>
+            </div>
         </div>
     </div>
 </div>

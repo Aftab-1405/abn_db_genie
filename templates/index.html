@@ -13,59 +13,58 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/static/images/Brand Product.png">
   <link rel="shortcut icon" href="/static/images/Brand Product.png">
 
-  <!-- Theme initialization script - must run before CSS loads to prevent flash -->
+  <!-- Optimized theme initialization - prevents FOUC -->
   <script>
     (function () {
-      // Get theme from localStorage or default to light
-      const savedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      const theme = localStorage.getItem('theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 
-      // Apply theme immediately to prevent flash
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      document.documentElement.classList.toggle('dark', theme === 'dark');
 
-      // Store the theme if it wasn't already saved
-      if (!savedTheme) {
+      if (!localStorage.getItem('theme')) {
         localStorage.setItem('theme', theme);
       }
     })();
   </script>
 
-  <!-- Preload critical resources -->
+  <!-- Critical resource preloading for performance -->
   <link rel="preload" href="/static/styles.css" as="style">
   <link rel="preload" href="/static/images/Brand Logo.png" as="image">
-  <link rel="preload" href="/static/images/Brand Product.png" as="image">
   <link rel="preload" href="/static/images/user.png" as="image">
 
-  <!-- Critical CSS - Tailwind -->
+  <!-- Critical CSS -->
   <link rel="stylesheet" href="/static/styles.css">
 
-  <!-- Non-critical CSS - Load asynchronously -->
+  <!-- Non-critical CSS with efficient loading -->
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" as="style"
     onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" as="style"
-    onload="this.onload=null;this.rel='stylesheet'"> <!-- Fallback for browsers that don't support preload -->
+    onload="this.onload=null;this.rel='stylesheet'">
+
+  <!-- Syntax highlighting with optimal loading -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+
+  <!-- Fallback for preload -->
   <noscript>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
   </noscript>
 </head>
 
-<body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-colors duration-200">
-  <div class="font-sans overflow-hidden flex h-screen text-base leading-relaxed min-h-0">
+<!-- Using centralized theme classes for consistency -->
+
+<body class="app-surface app-transition overflow-hidden">
+  <div class="font-sans flex h-screen min-h-0">
+
     <!-- Sidebar Fragment -->
     {% include 'fragments/sidebar.html' %}
 
     <!-- SQL Editor Popup Fragment -->
     {% include 'fragments/sql_editor_popup.html' %}
 
-    <!-- Main Content -->
+    <!-- Main Content Area -->
     <main id="main-content"
-      class="bg-neutral-100 dark:bg-neutral-800 flex flex-col flex-grow overflow-hidden min-h-0 w-full md:ml-64 transition-all duration-300 ease-in-out">
+      class="app-surface-secondary flex flex-col flex-grow overflow-hidden min-h-0 w-full md:ml-64 app-transition-slow">
 
       <!-- Header Fragment -->
       {% include 'fragments/header.html' %}
@@ -91,7 +90,9 @@
 
   </div>
 
-  <!-- Critical JavaScript loaded with defer for better performance -->
+  <!-- Optimized JavaScript loading strategy -->
+
+  <!-- Critical CodeMirror resources -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
   <script defer
@@ -101,11 +102,16 @@
   <script defer
     src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/selection/active-line.min.js"></script>
 
-  <!-- Non-critical JavaScript loaded asynchronously -->
+  <!-- Non-critical resources loaded asynchronously -->
   <script async src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script async src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+
+  <!-- Highlight.js with language support -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
 
   <!-- Main application script -->
   <script type="module" src="/static/script.js"></script>

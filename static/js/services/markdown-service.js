@@ -1,11 +1,13 @@
+// markdown-service.js - Refactored for CSS-first approach
+
 class MarkdownService {
   constructor() {
     this.cache = new Map();
     this.partialCache = new Map();
-    this.maxCacheSize = 100; // Prevent memory leaks
+    this.maxCacheSize = 100;
   }
 
-  // Process complete markdown content with intelligent caching
+  // Process complete markdown content - SIMPLIFIED, no manual styling
   processFullMarkdown(content) {
     const cacheKey = `full_${content}`;
     if (this.cache.has(cacheKey)) {
@@ -18,151 +20,192 @@ class MarkdownService {
       this.cache.delete(firstKey);
     }
 
+    // Parse markdown with marked.js - NO HIGHLIGHTING HERE
     const dirtyHtml = marked.parse(content, {
       gfm: true,
       breaks: true,
       sanitize: false, // We'll sanitize with DOMPurify
     });
+
+    // Sanitize the HTML
     const safeHtml = DOMPurify.sanitize(dirtyHtml);
 
+    // Create temporary div for processing
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = safeHtml;
 
-    // Enhanced syntax highlighting for code blocks
-    tempDiv.querySelectorAll("pre code").forEach((block) => {
-      // Try to detect the language from the class
-      let language = block.className.replace("language-", "") || "";
-
-      // If no language specified, try to auto-detect
-      if (!language) {
-        const code = block.textContent;
-        if (
-          code.includes("SELECT") ||
-          code.includes("INSERT INTO") ||
-          code.includes("CREATE TABLE")
-        ) {
-          language = "sql";
-        } else if (code.includes("import") && code.includes("def")) {
-          language = "python";
-        } else if (code.trim().startsWith("{") || code.trim().startsWith("[")) {
-          language = "json";
-        }
-      }
-
-      // Add the proper class for highlighting
-      if (language) {
-        block.className = `language-${language} hljs`;
-      } else {
-        block.className = "hljs";
-      }
-
-      try {
-        hljs.highlightElement(block);
-      } catch (e) {
-        console.warn("Highlight.js error:", e);
-      }
-    });
-
-    // Add custom styling to pre elements and tables
-    tempDiv.querySelectorAll("pre").forEach((pre) => {
-      pre.classList.add(
-        "rounded-lg",
-        "p-4",
-        "my-4",
-        "bg-gray-900",
-        "dark:bg-black",
-        "overflow-x-auto"
-      );
-    });
-
-    // Enhance table styling
-    tempDiv.querySelectorAll("table").forEach((table) => {
-      table.classList.add(
-        "w-full",
-        "border-collapse",
-        "my-4",
-        "bg-white",
-        "dark:bg-gray-800",
-        "rounded-lg",
-        "overflow-hidden",
-        "border",
-        "theme-border",
-        "table-responsive"
-      );
-
-      // Add a wrapper div for horizontal scrolling
-      const wrapper = document.createElement("div");
-      wrapper.classList.add(
-        "overflow-x-auto",
-        "w-full",
-        "max-w-full",
-        "rounded-lg",
-        "border",
-        "theme-border"
-      );
-
-      table.parentNode.insertBefore(wrapper, table);
-      wrapper.appendChild(table);
-    });
-
-    // Style table headers
-    tempDiv.querySelectorAll("th").forEach((th) => {
-      th.classList.add(
-        "px-4",
-        "py-3",
-        "text-left",
-        "font-semibold",
-        "bg-gray-50",
-        "dark:bg-gray-700",
-        "theme-border",
-        "border-b",
-        "sticky",
-        "top-0",
-        "whitespace-nowrap"
-      );
-    });
-
-    // Style table cells with expandable content
-    tempDiv.querySelectorAll("td").forEach((td) => {
-      td.classList.add(
-        "px-4",
-        "py-3",
-        "theme-border",
-        "border-b",
-        "theme-text-primary",
-        "truncate",
-        "max-w-[200px]",
-        "group-hover:whitespace-normal",
-        "group-hover:overflow-visible",
-        "transition-all"
-      );
-
-      // Wrap cell content in a span for better truncation
-      const content = td.innerHTML;
-      td.innerHTML = `<span class="inline-block truncate hover:whitespace-normal hover:overflow-visible w-full transition-all duration-200">${content}</span>`;
-    });
-
-    // Add row hover effects
-    tempDiv.querySelectorAll("tbody tr").forEach((tr) => {
-      tr.classList.add(
-        "group",
-        "hover:bg-gray-50",
-        "dark:hover:bg-gray-700",
-        "transition-colors"
-      );
-    });
+    // MINIMAL processing - just add semantic classes
+    this._addSemanticClasses(tempDiv);
 
     const result = tempDiv.innerHTML;
     this.cache.set(cacheKey, result);
     return result;
   }
 
-  // Ultra-fast partial markdown processing with smart caching
+  // Add only semantic classes, let CSS handle the styling
+  _addSemanticClasses(tempDiv) {
+    // Add language detection for code blocks
+    tempDiv.querySelectorAll("pre code").forEach((block) => {
+      const code = block.textContent;
+
+      // Check if it's Mermaid first
+      if (this._isMermaidContent(code)) {
+        block.className = "language-mermaid";
+        const pre = block.closest("pre");
+        if (pre) {
+          pre.setAttribute("data-language", "mermaid");
+          pre.setAttribute("data-code", code);
+          pre.setAttribute("data-mermaid", "true");
+        }
+        return;
+      }
+
+      // Auto-detect other languages if not specified
+      if (!block.className.includes("language-")) {
+        const detectedLang = this._detectLanguage(code);
+        if (detectedLang) {
+          block.className = `language-${detectedLang} hljs`;
+        } else {
+          block.className = "hljs";
+        }
+      }
+
+      // Add data attributes for functionality
+      const pre = block.closest("pre");
+      if (pre) {
+        const language = this._extractLanguage(block.className);
+        pre.setAttribute("data-language", language);
+        pre.setAttribute("data-code", code);
+
+        // Mark SQL for run button
+        if (this._isSqlContent(code, block.className)) {
+          pre.setAttribute("data-sql", "true");
+        }
+      }
+    });
+
+    // Add table wrapper for responsive tables
+    tempDiv.querySelectorAll("table").forEach((table) => {
+      if (!table.closest(".table-wrapper")) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-wrapper";
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      }
+    });
+  }
+
+  // Language detection helpers
+  _detectLanguage(code) {
+    const trimmed = code.trim();
+
+    // SQL detection
+    if (this._isSqlContent(code)) return "sql";
+
+    // Mermaid detection
+    if (this._isMermaidContent(code)) return "mermaid";
+
+    // JSON detection
+    if (
+      (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+      (trimmed.startsWith("[") && trimmed.endsWith("]"))
+    ) {
+      try {
+        JSON.parse(trimmed);
+        return "json";
+      } catch (e) {}
+    }
+
+    // Python detection
+    if (
+      code.includes("def ") ||
+      code.includes("import ") ||
+      code.includes("from ")
+    ) {
+      return "python";
+    }
+
+    // JavaScript detection
+    if (
+      code.includes("function") ||
+      code.includes("=>") ||
+      code.includes("const ")
+    ) {
+      return "javascript";
+    }
+
+    return null;
+  }
+
+  _isSqlContent(code, className = "") {
+    if (className.toLowerCase().includes("sql")) return true;
+
+    const sqlKeywords = [
+      "SELECT",
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "CREATE",
+      "ALTER",
+      "DROP",
+      "SHOW",
+      "USE",
+      "DESCRIBE",
+      "DESC",
+      "EXPLAIN",
+    ];
+
+    const upperCode = code.toUpperCase();
+    return sqlKeywords.some(
+      (keyword) =>
+        upperCode.includes(keyword + " ") ||
+        upperCode.trim().startsWith(keyword)
+    );
+  }
+
+  _isMermaidContent(code) {
+    const trimmed = code.trim().toLowerCase();
+    const mermaidKeywords = [
+      "graph",
+      "sequencediagram",
+      "classdiagram",
+      "statediagram",
+      "erdiagram",
+      "pie",
+      "gantt",
+      "journey",
+      "flowchart",
+      "gitgraph",
+      "mindmap",
+      "timeline",
+      "quadrantchart",
+    ];
+
+    // Check if any line starts with a mermaid keyword
+    const lines = code.trim().split("\n");
+    return lines.some((line) => {
+      const trimmedLine = line.trim().toLowerCase();
+      return mermaidKeywords.some(
+        (keyword) =>
+          trimmedLine.startsWith(keyword + " ") ||
+          trimmedLine === keyword ||
+          trimmedLine.startsWith(keyword + ":")
+      );
+    });
+  }
+
+  _extractLanguage(className) {
+    const match = className.match(/language-(\w+)/);
+    return match ? match[1] : "";
+  }
+
+  // Ultra-fast partial markdown processing
   processPartialMarkdown(partialContent, fullContent) {
     const cacheKey = `partial_${partialContent}`;
-    if (this.partialCache.has(cacheKey)) return this.partialCache.get(cacheKey);
+    if (this.partialCache.has(cacheKey)) {
+      return this.partialCache.get(cacheKey);
+    }
 
-    // For very short strings do a quick inline parse to avoid heavy DOM ops
     try {
       const dirtyHtml = marked.parse(partialContent, {
         gfm: true,
@@ -173,7 +216,7 @@ class MarkdownService {
       this.partialCache.set(cacheKey, safeHtml);
       return safeHtml;
     } catch (e) {
-      // fallback: escape the text
+      // Fallback: escape the text
       const escaped = partialContent
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -183,13 +226,12 @@ class MarkdownService {
     }
   }
 
-  // Clear all caches for memory management
+  // Clear caches
   clearCache() {
     this.cache.clear();
     this.partialCache.clear();
   }
 
-  // Clear only partial cache after typewriter completion
   clearPartialCache() {
     this.partialCache.clear();
   }

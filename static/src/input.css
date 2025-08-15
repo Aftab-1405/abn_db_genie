@@ -3,101 +3,604 @@
 @tailwind utilities;
 
 @layer components {
+    /* =================================================================
+       MESSAGE LAYOUT - Chat message styling
+       ================================================================= */
+
+    .message {
+        @apply flex gap-3 p-2 mb-4 opacity-0 transform translate-y-2;
+        @apply app-transition duration-300;
+    }
+
+    .message--visible {
+        @apply opacity-100 translate-y-0;
+    }
+
+    .message--user {
+        @apply flex-row;
+    }
+
+    .message--ai {
+        @apply flex-row;
+    }
+
+    .message-avatar {
+        @apply w-6 h-6 md:w-7 md:h-7 rounded-full flex-shrink-0;
+        @apply mt-3 app-transition duration-300;
+    }
+
+    .message__content {
+        @apply flex-1 min-w-0 text-sm md:text-base;
+        @apply app-text;
+    }
+
+    /* =================================================================
+       CHAT PROSE - Base styling for all markdown content
+       ================================================================= */
     .chat-prose {
-        @apply max-w-none text-gray-700 dark:text-gray-200;
+        @apply max-w-none app-text;
     }
 
     .chat-prose>* {
         @apply mt-0 mb-0;
     }
 
-    .chat-prose pre {
-        @apply bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-shadow duration-200 my-4 p-4;
-    }
-
-    .chat-prose pre:hover {
-        @apply shadow-lg;
-    }
-
-    .chat-prose pre code {
-        @apply bg-transparent text-gray-800 dark:text-gray-200 font-normal text-sm leading-relaxed block w-full;
-    }
-
-    /* Remove highlight.js defaults */
-    .chat-prose .hljs {
-        @apply bg-transparent text-current p-0;
-    }
-
-    /* Mermaid diagrams */
-    .chat-prose .mermaid-diagram {
-        @apply bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm my-4 p-4;
-    }
-
     /* Headers */
     .chat-prose :is(h1, h2, h3, h4, h5, h6) {
-        @apply text-gray-900 dark:text-gray-100 font-semibold leading-relaxed mt-6 mb-3;
+        @apply app-text font-semibold leading-relaxed mt-6 mb-3;
     }
 
     /* Paragraphs */
     .chat-prose p {
-        @apply my-3;
+        @apply my-3 leading-relaxed;
     }
 
     /* Lists */
     .chat-prose :is(ul, ol) {
-        @apply my-3 pl-6;
+        @apply my-3 pl-6 space-y-1;
+    }
+
+    .chat-prose li {
+        @apply leading-relaxed;
     }
 
     /* Links */
     .chat-prose a {
-        @apply text-blue-600 dark:text-blue-400 hover:underline;
+        @apply text-brand-purple-600 dark:text-brand-purple-400 hover:underline app-transition;
     }
 
     /* Inline code */
     .chat-prose :not(pre)>code {
-        @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-1.5 py-0.5 text-sm;
+        @apply app-surface-secondary app-text rounded px-1.5 py-0.5 text-sm font-mono;
     }
-}
 
-/* Custom Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-    background-color: transparent;
-}
+    /* Blockquotes */
+    .chat-prose blockquote {
+        @apply app-border border-l-4 pl-4 my-4 app-text-secondary italic;
+    }
 
-::-webkit-scrollbar-track {
-    background-color: transparent;
-}
+    /* Horizontal rules */
+    .chat-prose hr {
+        @apply app-border border-t my-6;
+    }
 
-::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0);
-    border-radius: 3px;
-    transition: background-color 0.2s ease;
-}
+    /* =================================================================
+       CODE BLOCKS - Complete styling system
+       ================================================================= */
 
-*:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0.5);
-}
+    /* Base code block container */
+    .chat-prose .code-block {
+        @apply relative my-4 rounded-lg overflow-hidden;
+        @apply app-surface-secondary app-border border;
+        @apply shadow-depth-1 hover:shadow-depth-2 app-transition;
+        /* Remove the gradient backgrounds that were causing issues */
+    }
 
-.dark ::-webkit-scrollbar-thumb {
-    background-color: rgba(75, 85, 99, 0);
-}
+    /* Code text styling */
+    .chat-prose .code-block code {
+        @apply block w-full p-4 overflow-x-auto;
+        @apply bg-transparent app-text font-mono text-sm leading-relaxed;
+        @apply app-scrollbar;
+    }
 
-.dark *:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(75, 85, 99, 0.5);
-}
+    /* Language-specific styling - subtle border colors only */
+    .chat-prose .code-block--sql {
+        @apply border-green-300 dark:border-green-700;
+    }
 
-/* Firefox scrollbar styling */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
-}
+    .chat-prose .code-block--mermaid {
+        @apply border-blue-300 dark:border-blue-700;
+    }
 
-*:hover {
-    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-}
+    .chat-prose .code-block--json {
+        @apply border-yellow-300 dark:border-yellow-700;
+    }
 
-.dark *:hover {
-    scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+    .chat-prose .code-block--python {
+        @apply border-blue-300 dark:border-blue-700;
+    }
+
+    .chat-prose .code-block--javascript {
+        @apply border-yellow-300 dark:border-yellow-700;
+    }
+
+    /* =================================================================
+       CODE BLOCK BUTTONS - Interactive elements
+       ================================================================= */
+
+    .code-block__buttons {
+        @apply absolute top-2 right-2 flex gap-2 z-10;
+        @apply opacity-70 hover:opacity-100 app-transition;
+    }
+
+    .code-block:hover .code-block__buttons {
+        @apply opacity-100;
+    }
+
+    .code-block__button {
+        @apply w-8 h-8 rounded-lg flex items-center justify-center;
+        @apply app-transition focus:outline-none focus:ring-2;
+        @apply shadow-sm hover:shadow-md backdrop-blur-sm;
+    }
+
+    .code-block__button--copy {
+        @apply app-surface hover:app-surface-secondary;
+        @apply app-border border focus:ring-brand-purple-500;
+    }
+
+    .code-block__button--run {
+        @apply bg-green-500 hover:bg-green-600 text-white;
+        @apply focus:ring-green-400 shadow-glow-brand;
+    }
+
+    .code-block__button--copied {
+        @apply bg-green-500 text-white;
+    }
+
+    .code-block__button--loading {
+        @apply cursor-not-allowed opacity-75;
+    }
+
+    .code-block__icon {
+        @apply w-4 h-4;
+    }
+
+    .code-block__spinner {
+        @apply animate-spin;
+    }
+
+    /* Show buttons on mobile tap/focus */
+    .code-block:focus-within .code-block__buttons,
+    .code-block:active .code-block__buttons {
+        @apply opacity-100;
+    }
+
+    /* =================================================================
+       MERMAID DIAGRAMS
+       ================================================================= */
+
+    .chat-prose .mermaid-diagram {
+        @apply my-4 p-4 rounded-lg overflow-hidden;
+        @apply app-surface-secondary app-border border;
+        @apply shadow-depth-1 opacity-0 transform scale-95;
+        @apply app-transition duration-300;
+    }
+
+    .chat-prose .mermaid-diagram--success {
+        @apply opacity-100 scale-100;
+    }
+
+    .chat-prose .mermaid-diagram--error {
+        @apply opacity-100 scale-100 border-red-300 dark:border-red-700;
+        @apply bg-red-50 dark:bg-red-950;
+    }
+
+    .chat-prose .mermaid-diagram__svg {
+        @apply mx-auto max-w-full h-auto;
+    }
+
+    /* =================================================================
+       TABLES - Responsive and styled
+       ================================================================= */
+
+    .chat-prose .table-wrapper {
+        @apply my-4 overflow-x-auto rounded-lg;
+        @apply app-border border shadow-depth-1;
+        @apply app-scrollbar;
+    }
+
+    .chat-prose table {
+        @apply w-full border-collapse app-surface;
+        @apply text-sm;
+    }
+
+    .chat-prose th {
+        @apply px-4 py-3 text-left font-semibold;
+        @apply app-surface-secondary app-text;
+        @apply app-border border-b sticky top-0;
+        @apply bg-gray-50 dark:bg-gray-800;
+    }
+
+    .chat-prose td {
+        @apply px-4 py-3 app-border border-b;
+        @apply app-text max-w-xs truncate;
+        @apply hover:whitespace-normal hover:overflow-visible;
+        @apply app-transition;
+    }
+
+    .chat-prose tbody tr {
+        @apply hover:app-surface-secondary app-transition;
+    }
+
+    /* Responsive table improvements */
+    @media (max-width: 768px) {
+        .chat-prose .table-wrapper {
+            @apply -mx-3;
+            border-radius: 0;
+        }
+
+        .chat-prose th,
+        .chat-prose td {
+            @apply px-2 py-2 text-xs;
+        }
+    }
+
+    /* =================================================================
+       ENHANCED SYNTAX HIGHLIGHTING
+       ================================================================= */
+
+    /* Override highlight.js styles to match theme */
+    .chat-prose .hljs {
+        @apply bg-transparent text-current;
+    }
+
+    /* Dark mode highlight.js adjustments */
+    .dark .chat-prose .hljs-keyword {
+        @apply text-purple-400;
+    }
+
+    .dark .chat-prose .hljs-string {
+        @apply text-green-400;
+    }
+
+    .dark .chat-prose .hljs-number {
+        @apply text-blue-400;
+    }
+
+    .dark .chat-prose .hljs-comment {
+        @apply text-gray-500;
+    }
+
+    /* Light mode highlight.js adjustments */
+    .chat-prose .hljs-keyword {
+        @apply text-purple-700;
+    }
+
+    .chat-prose .hljs-string {
+        @apply text-green-700;
+    }
+
+    .chat-prose .hljs-number {
+        @apply text-blue-700;
+    }
+
+    .chat-prose .hljs-comment {
+        @apply text-gray-600;
+    }
+
+    /* =================================================================
+       RESPONSIVE DESIGN
+       ================================================================= */
+
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+        .chat-prose {
+            @apply text-sm;
+        }
+
+        .code-block__buttons {
+            @apply opacity-100;
+            /* Always show on mobile */
+        }
+
+        .code-block__button {
+            @apply w-10 h-10;
+            /* Larger touch targets */
+        }
+    }
+
+    /* =================================================================
+       MODERN TYPEWRITER ANIMATIONS - Performance optimized
+       ================================================================= */
+
+    /* Base animation styles - integrated with design system */
+    .chat-prose .typing-animation {
+        @apply app-surface-secondary rounded-lg p-4 my-4;
+        @apply app-border border shadow-depth-1;
+        overflow: hidden;
+        white-space: nowrap;
+        animation: code-reveal 2s steps(40, end) forwards,
+            typing-cursor 1s step-end infinite;
+        will-change: width, opacity;
+    }
+
+    .chat-prose .typing-animation::after {
+        content: '';
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        background: currentColor;
+        margin-left: 2px;
+        animation: typing-cursor 1s step-end infinite;
+    }
+
+    /* Word reveal animations */
+    .chat-prose .word-reveal {
+        display: inline-block;
+        will-change: transform, opacity;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Keyframes for typing effects */
+    @keyframes code-reveal {
+        0% {
+            width: 0;
+            opacity: 0;
+        }
+
+        1% {
+            opacity: 1;
+        }
+
+        100% {
+            width: 100%;
+            opacity: 1;
+        }
+    }
+
+    @keyframes typing-cursor {
+
+        0%,
+        50% {
+            opacity: 1;
+        }
+
+        51%,
+        100% {
+            opacity: 0;
+        }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+        .chat-prose .typing-animation {
+            white-space: pre-wrap;
+            animation-duration: 1.5s;
+        }
+    }
+
+    /* =================================================================
+       MODERN THINKING ANIMATION - GPU accelerated
+       ================================================================= */
+
+    @keyframes modern-thinking {
+
+        0%,
+        100% {
+            transform: scale(1) rotate(0deg);
+            filter: brightness(1) hue-rotate(0deg);
+        }
+
+        25% {
+            transform: scale(1.05) rotate(2deg);
+            filter: brightness(1.2) hue-rotate(90deg);
+        }
+
+        50% {
+            transform: scale(1.1) rotate(-2deg);
+            filter: brightness(1.4) hue-rotate(180deg);
+        }
+
+        75% {
+            transform: scale(1.05) rotate(1deg);
+            filter: brightness(1.2) hue-rotate(270deg);
+        }
+    }
+
+    @keyframes particle-float {
+
+        0%,
+        100% {
+            transform: translateY(0px) translateX(0px) scale(0);
+            opacity: 0;
+        }
+
+        10% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        90% {
+            opacity: 1;
+        }
+
+        100% {
+            transform: translateY(-20px) translateX(10px) scale(0);
+            opacity: 0;
+        }
+    }
+
+    @keyframes glow-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+
+        50% {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+        }
+    }
+
+    .ai-thinking-modern {
+        animation: modern-thinking 3s ease-in-out infinite,
+            glow-pulse 2s ease-in-out infinite;
+        position: relative;
+        z-index: 1;
+        will-change: transform, filter;
+    }
+
+    .thinking-particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: linear-gradient(45deg, #a855f7, #06b6d4);
+        border-radius: 50%;
+        animation: particle-float 2s ease-in-out infinite;
+        pointer-events: none;
+        top: 50%;
+        left: 50%;
+    }
+
+    .thinking-particle:nth-child(1) {
+        left: 20%;
+        animation-delay: 0s;
+    }
+
+    .thinking-particle:nth-child(2) {
+        left: 80%;
+        animation-delay: 0.3s;
+    }
+
+    .thinking-particle:nth-child(3) {
+        top: 20%;
+        animation-delay: 0.6s;
+    }
+
+    .thinking-particle:nth-child(4) {
+        top: 80%;
+        animation-delay: 0.9s;
+    }
+
+    .thinking-particle:nth-child(5) {
+        left: 60%;
+        top: 30%;
+        animation-delay: 1.2s;
+    }
+
+    /* =================================================================
+       ACCESSIBILITY IMPROVEMENTS
+       ================================================================= */
+
+    /* Focus styles for keyboard navigation */
+    .code-block__button:focus-visible {
+        @apply ring-2 ring-offset-2 ring-brand-purple-500;
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+        .chat-prose .code-block {
+            @apply border-2;
+        }
+
+        .chat-prose .code-block__button {
+            @apply border-2 border-current;
+        }
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+
+        .chat-prose .code-block,
+        .chat-prose .mermaid-diagram,
+        .code-block__button,
+        .chat-prose .typing-animation,
+        .chat-prose .word-reveal,
+        .ai-thinking-modern,
+        .thinking-particle {
+            @apply transition-none;
+            animation: none !important;
+            transform: none !important;
+            opacity: 1 !important;
+        }
+
+        .code-block__spinner {
+            @apply animate-none;
+        }
+    }
+
+    /* =================================================================
+       PRINT STYLES
+       ================================================================= */
+
+    @media print {
+
+        .code-block__buttons,
+        .thinking-particle {
+            @apply hidden;
+        }
+
+        .chat-prose .code-block {
+            @apply shadow-none border border-gray-400;
+        }
+
+        .chat-prose .table-wrapper {
+            @apply shadow-none;
+        }
+
+        .chat-prose .typing-animation {
+            white-space: pre-wrap !important;
+            animation: none !important;
+            width: 100% !important;
+            opacity: 1 !important;
+        }
+    }
+
+    /* Focus styles for keyboard navigation */
+    .code-block__button:focus-visible {
+        @apply ring-2 ring-offset-2 ring-brand-purple-500;
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+        .chat-prose .code-block {
+            @apply border-2;
+        }
+
+        .chat-prose .code-block__button {
+            @apply border-2 border-current;
+        }
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+
+        .chat-prose .code-block,
+        .chat-prose .mermaid-diagram,
+        .code-block__button {
+            @apply transition-none;
+        }
+
+        .code-block__spinner {
+            @apply animate-none;
+        }
+    }
+
+    /* =================================================================
+       PRINT STYLES
+       ================================================================= */
+
+    @media print {
+        .code-block__buttons {
+            @apply hidden;
+        }
+
+        .chat-prose .code-block {
+            @apply shadow-none border border-gray-400;
+        }
+
+        .chat-prose .table-wrapper {
+            @apply shadow-none;
+        }
+    }
 }

@@ -1,4 +1,4 @@
-// Dynamic Mermaid.js diagram renderer
+// Dynamic mermaid-helper.js diagram renderer
 let mermaidInitialized = false;
 
 export function loadMermaid(callback) {

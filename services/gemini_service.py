@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 genai.configure(api_key=Config.GEMINI_API_KEY)
 
 # Load Gemini model (as per current best practices)
-model = genai.GenerativeModel(model_name="models/gemini-2.5-flash-preview-05-20")
+model = genai.GenerativeModel(model_name="models/gemini-2.5-pro")
 
 # In-memory chat session store
 chat_sessions = {}
@@ -19,10 +19,11 @@ class GeminiService:
 
     # Settings
     STRICT_MODE = True
-    ENABLE_CONTEXT_ENHANCEMENT = False
+    ENABLE_CONTEXT_ENHANCEMENT = True
 
     @staticmethod
     def get_system_prompt():
+        
         """Returns DB-Genie’s identity, purpose, and rules for consistent behavior"""
         return textwrap.dedent("""
             You are DB-Genie, a data-first database assistant from ABN Alliance. Every response must be grounded in schema metadata or user input; never invent facts. If you’re unsure, ask for clarification rather than guessing.
@@ -43,12 +44,13 @@ class GeminiService:
             • Highlight best practices and common pitfalls.
 
             VISUALIZATIONS
-            - Whenever the user requests “visualize,” “diagram,” “schema,” or similar, output accurate diagram code that can render:
+            - Whenever the user requests “visualize schema,” or similar, output accurate diagram code (specifically mermaid code) that can render:
             • Entity-relationship (ER) diagrams
             • Class-style diagrams
             • Hierarchies or network graphs
             • Any mix of the above
             - Do not mention the underlying diagram library or syntax by name—just supply the code block.
+            - If user ask any diagram, then you can generate diagram for it, based on you diagram generation capability, no need to use mermaid code for that.
 
             FEATURES & UX
             - Zero-Trust: No persistent storage of user data; only use schema metadata to craft SQL.

@@ -1,4 +1,4 @@
-// Enhanced tailwind.config.js with centralized component classes
+// tailwind.config.js - Single source of truth for colors
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./templates/**/*.html", "./static/**/*.{js,css,html}"],
@@ -39,460 +39,396 @@ module.exports = {
         "5xl": ["clamp(3rem, 2.5rem + 2.5vw, 4rem)", { lineHeight: "1.1" }],
         "6xl": ["clamp(3.75rem, 3rem + 3.75vw, 5rem)", { lineHeight: "1.1" }],
       },
+
       fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
         cursive: ["Dancing Script", "cursive"],
       },
+
       colors: {
-        neutral: {
-          25: "#fafafa",
-          700: "#2d2d2d",
-          850: "#1f1f1f",
-        },
-        // Add semantic color names for consistent theming
+        // SINGLE SOURCE OF TRUTH - Enhanced semantic color system
         surface: {
-          primary: "rgb(250 250 250)", // light mode primary surface
-          secondary: "rgb(245 245 245)", // light mode secondary surface
-          dark: {
-            primary: "rgb(23 23 23)", // dark mode primary surface
-            secondary: "rgb(38 38 38)", // dark mode secondary surface
-          },
+          // Light mode surfaces
+          primary: "rgb(255 255 255)", // Pure white for main surfaces
+          secondary: "rgb(249 250 251)", // Slight gray for secondary surfaces
+          tertiary: "rgb(243 244 246)", // Lighter gray for tertiary elements
+
+          // Dark mode surfaces
+          "dark-primary": "rgb(23 23 23)", // Near black for main surfaces
+          "dark-secondary": "rgb(38 38 38)", // Dark gray for secondary surfaces
+          "dark-tertiary": "rgb(55 65 81)", // Medium gray for tertiary elements
         },
+
         text: {
-          primary: "rgb(0 0 0)", // light mode primary text
-          secondary: "rgb(115 115 115)", // light mode secondary text
-          dark: {
-            primary: "rgb(255 255 255)", // dark mode primary text
-            secondary: "rgb(163 163 163)", // dark mode secondary text
+          // Light mode text
+          primary: "rgb(17 24 39)", // Almost black for primary text
+          secondary: "rgb(75 85 99)", // Gray for secondary text
+          tertiary: "rgb(156 163 175)", // Light gray for tertiary text
+
+          // Dark mode text
+          "dark-primary": "rgb(249 250 251)", // Almost white for primary text
+          "dark-secondary": "rgb(209 213 219)", // Light gray for secondary text
+          "dark-tertiary": "rgb(156 163 175)", // Medium gray for tertiary text
+        },
+
+        border: {
+          light: "rgb(229 231 235)", // Light mode borders
+          dark: "rgb(55 65 81)", // Dark mode borders
+        },
+
+        // DB-Genie brand colors
+        brand: {
+          purple: {
+            50: "#faf5ff",
+            100: "#f3e8ff",
+            200: "#e9d5ff",
+            300: "#d8b4fe",
+            400: "#c084fc",
+            500: "#a855f7", // Primary purple
+            600: "#9333ea",
+            700: "#7c3aed",
+            800: "#6b21a8",
+            900: "#581c87",
+          },
+          yellow: {
+            50: "#fefce8",
+            100: "#fef9c3",
+            200: "#fef08a",
+            300: "#fde047", // Accent yellow
+            400: "#facc15",
+            500: "#eab308",
+            600: "#ca8a04",
+            700: "#a16207",
+            800: "#854d0e",
+            900: "#713f12",
           },
         },
       },
+
+      // Enhanced shadows for depth and glassmorphism
       boxShadow: {
-        glow: "0 0 20px rgba(255, 255, 255, 0.5)",
-        "glow-dark": "0 0 20px rgba(59, 130, 246, 0.3)",
+        glass: "0 8px 32px 0 rgba(0, 0, 0, 0.1)",
+        "glass-strong": "0 12px 48px 0 rgba(0, 0, 0, 0.15)",
+        "glow-brand": "0 0 20px rgba(168, 85, 247, 0.3)",
+        "glow-brand-strong": "0 0 40px rgba(168, 85, 247, 0.5)",
+        "depth-1":
+          "0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
+        "depth-2":
+          "0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.06)",
+        "depth-3":
+          "0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)",
       },
-      textShadow: {
-        glow: "0 0 10px rgba(255, 255, 255, 0.5)",
-      },
+
+      // Animation system
       keyframes: {
-        rotate: {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        slideInRight: {
+        "slide-in-right": {
           "0%": { transform: "translateX(100%)", opacity: "0" },
           "100%": { transform: "translateX(0)", opacity: "1" },
         },
-        fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        slideDown: {
-          "0%": { transform: "translateY(-10px)", opacity: "0" },
-          "100%": { transform: "translateY(0)", opacity: "1" },
+        "bounce-subtle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-3px)" },
+        },
+        "gradient-shift": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(168, 85, 247, 0.3)" },
+          "50%": { boxShadow: "0 0 40px rgba(168, 85, 247, 0.6)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-6px)" },
         },
       },
+
       animation: {
-        "slow-rotate": "rotate 10s linear infinite",
-        slideInRight: "slideInRight 0.3s ease-out",
-        fadeIn: "fadeIn 0.3s ease-out",
-        slideDown: "slideDown 0.3s ease-out",
+        "slide-in-right": "slide-in-right 0.3s ease-out forwards",
+        "fade-in-up": "fade-in-up 0.4s ease-out forwards",
+        "bounce-subtle": "bounce-subtle 0.3s ease-out",
+        "gradient-shift": "gradient-shift 3s ease infinite",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        float: "float 3s ease-in-out infinite",
+        "float-delayed": "float 3s ease-in-out 1.5s infinite",
       },
+
       spacing: {
         18: "4.5rem",
         88: "22rem",
       },
+
       width: {
         sidebar: "16rem",
       },
+
       maxWidth: {
         chat: "60%",
+        modal: "32rem",
       },
-      typography: (theme) => ({
-        DEFAULT: {
-          css: {
-            maxWidth: "100%",
-            color: theme("colors.gray.700"),
-            '[class~="dark"] &': {
-              color: theme("colors.gray.200"),
-            },
-            pre: {
-              backgroundColor: theme("colors.white"),
-              color: theme("colors.gray.800"),
-              borderRadius: theme("borderRadius.lg"),
-              padding: theme("spacing.4"),
-              marginTop: theme("spacing.4"),
-              marginBottom: theme("spacing.4"),
-              border: `1px solid ${theme("colors.gray.200")}`,
-              '[class~="dark"] &': {
-                backgroundColor: theme("colors.gray.800"),
-                color: theme("colors.gray.200"),
-                borderColor: theme("colors.gray.700"),
-              },
-            },
-            code: {
-              backgroundColor: "transparent",
-              padding: "0",
-              fontWeight: "400",
-              color: "inherit",
-            },
-            "pre code": {
-              color: "inherit",
-              fontSize: "inherit",
-              fontFamily: "inherit",
-              lineHeight: "inherit",
-            },
-            "> *": {
-              marginTop: "0",
-              marginBottom: "0",
-            },
-            p: {
-              margin: "0.75rem 0",
-            },
-            "h1,h2,h3,h4,h5,h6": {
-              color: theme("colors.gray.900"),
-              '[class~="dark"] &': {
-                color: theme("colors.gray.100"),
-              },
-              fontWeight: "600",
-              lineHeight: "1.4",
-              margin: "1.5rem 0 0.75rem 0",
-            },
-            "ul,ol": {
-              margin: "0.75rem 0",
-              paddingLeft: theme("spacing.6"),
-            },
-            li: {
-              margin: "0.25rem 0",
-            },
-            code: {
-              color: theme("colors.gray.800"),
-              backgroundColor: theme("colors.gray.100"),
-              fontWeight: "500",
-              fontSize: "0.875em",
-              borderRadius: theme("borderRadius.DEFAULT"),
-              padding: `${theme("spacing.1")} ${theme("spacing.2")}`,
-              border: `1px solid ${theme("colors.gray.200")}`,
-            },
-            pre: {
-              color: theme("colors.gray.800"),
-              backgroundColor: theme("colors.gray.50"),
-              padding: theme("spacing.4"),
-              borderRadius: theme("borderRadius.lg"),
-              border: `1px solid ${theme("colors.gray.200")}`,
-              overflow: "auto",
-              fontSize: "0.875em",
-              lineHeight: "1.6",
-              margin: "1rem 0",
-              boxShadow: theme("boxShadow.sm"),
-              "> code": {
-                display: "block",
-                padding: "0",
-                backgroundColor: "transparent",
-                borderRadius: "0",
-                border: "none",
-              },
-            },
-            table: {
-              fontSize: theme("fontSize.sm")[0],
-              lineHeight: theme("fontSize.sm")[1].lineHeight,
-              width: "100%",
-              borderCollapse: "collapse",
-              margin: `${theme("spacing.6")} 0`,
-              border: `1px solid ${theme("colors.gray.200")}`,
-              borderRadius: theme("borderRadius.lg"),
-              overflow: "hidden",
-              backgroundColor: theme("colors.white"),
-            },
-            thead: {
-              backgroundColor: theme("colors.gray.50"),
-            },
-            "thead th": {
-              color: theme("colors.gray.800"),
-              fontWeight: "600",
-              padding: theme("spacing.4"),
-              textAlign: "left",
-              fontSize: theme("fontSize.sm")[0],
-              letterSpacing: theme("letterSpacing.wide"),
-              borderBottom: `2px solid ${theme("colors.gray.200")}`,
-            },
-            "tbody tr": {
-              borderBottom: `1px solid ${theme("colors.gray.200")}`,
-              "&:nth-child(even)": {
-                backgroundColor: theme("colors.gray.50"),
-              },
-              "&:hover": {
-                backgroundColor: theme("colors.gray.100"),
-              },
-            },
-            "tbody td": {
-              padding: theme("spacing.4"),
-              color: theme("colors.gray.700"),
-              verticalAlign: "top",
-            },
-            a: {
-              color: theme("colors.neutral.700"),
-              textDecoration: "none",
-              fontWeight: "500",
-              "&:hover": {
-                color: theme("colors.neutral.900"),
-                textDecoration: "underline",
-              },
-            },
-            blockquote: {
-              color: theme("colors.gray.600"),
-              borderLeft: `4px solid ${theme("colors.gray.300")}`,
-              paddingLeft: theme("spacing.4"),
-              margin: "1rem 0",
-              fontStyle: "italic",
-            },
-            hr: {
-              borderColor: theme("colors.gray.200"),
-              margin: "2rem 0",
-            },
-          },
-        },
-        dark: {
-          css: {
-            color: theme("colors.white"),
-            '[class~="lead"]': { color: theme("colors.white") },
-            strong: { color: theme("colors.white") },
-            a: {
-              color: theme("colors.white"),
-              "&:hover": {
-                color: theme("colors.gray.300"),
-              },
-            },
-            "h1,h2,h3,h4,h5,h6": {
-              color: theme("colors.white"),
-            },
-            blockquote: {
-              color: theme("colors.white"),
-              borderLeftColor: theme("colors.gray.600"),
-            },
-            hr: { borderColor: theme("colors.gray.700") },
-            ol: {
-              li: {
-                "&::marker": { color: theme("colors.white") },
-              },
-            },
-            ul: {
-              li: {
-                "&::marker": { color: theme("colors.white") },
-              },
-            },
-            code: {
-              color: theme("colors.white"),
-              backgroundColor: theme("colors.gray.800"),
-              border: `1px solid ${theme("colors.gray.700")}`,
-            },
-            pre: {
-              color: theme("colors.white"),
-              backgroundColor: theme("colors.black"),
-              border: `1px solid ${theme("colors.gray.700")}`,
-            },
-            table: {
-              border: `1px solid ${theme("colors.gray.700")}`,
-              backgroundColor: theme("colors.black"),
-            },
-            thead: {
-              backgroundColor: theme("colors.gray.900"),
-            },
-            "thead th": {
-              color: theme("colors.white"),
-              borderBottom: `2px solid ${theme("colors.gray.600")}`,
-            },
-            "tbody td": {
-              color: theme("colors.white"),
-            },
-            "tbody tr": {
-              borderBottom: `1px solid ${theme("colors.gray.700")}`,
-              "&:nth-child(even)": {
-                backgroundColor: theme("colors.neutral.850"),
-              },
-              "&:hover": {
-                backgroundColor: theme("colors.neutral.700"),
-              },
-            },
-          },
-        },
-        sm: {
-          css: {
-            fontSize: theme("fontSize.sm")[0],
-            lineHeight: theme("fontSize.sm")[1].lineHeight,
-            p: {
-              margin: "0.5rem 0",
-            },
-            "h1,h2,h3,h4,h5,h6": {
-              margin: "1rem 0 0.5rem 0",
-            },
-            pre: {
-              padding: theme("spacing.3"),
-              fontSize: "0.8125em",
-            },
-            code: {
-              fontSize: "0.8125em",
-            },
-            table: {
-              fontSize: "0.8125em",
-            },
-            "thead th, tbody td": {
-              padding: theme("spacing.3"),
-            },
-          },
-        },
-      }),
     },
   },
+
   plugins: [
     require("@tailwindcss/typography"),
     function ({ addUtilities, theme }) {
       const newUtilities = {
-        ".text-shadow-glow": {
-          textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
+        // THEME-AWARE COMPONENT CLASSES (Main utility classes)
+        ".app-surface": {
+          backgroundColor: theme("colors.surface.primary"),
+          color: theme("colors.text.primary"),
         },
-        ".text-shadow-glow-dark": {
-          textShadow: "0 0 10px rgba(59, 130, 246, 0.3)",
+        ".dark .app-surface": {
+          backgroundColor: theme("colors.surface.dark-primary"),
+          color: theme("colors.text.dark-primary"),
         },
-        ".transition-sidebar": {
-          transition: "transform 300ms ease-in-out",
+
+        ".app-surface-secondary": {
+          backgroundColor: theme("colors.surface.secondary"),
+          borderColor: theme("colors.border.light"),
         },
-        ".scrollbar-thin": {
-          "&::-webkit-scrollbar": { width: "6px" },
-          "&::-webkit-scrollbar-track": {
-            background: theme("colors.gray.100"),
+        ".dark .app-surface-secondary": {
+          backgroundColor: theme("colors.surface.dark-secondary"),
+          borderColor: theme("colors.border.dark"),
+        },
+
+        ".app-text": {
+          color: theme("colors.text.primary"),
+        },
+        ".dark .app-text": {
+          color: theme("colors.text.dark-primary"),
+        },
+
+        ".app-text-secondary": {
+          color: theme("colors.text.secondary"),
+        },
+        ".dark .app-text-secondary": {
+          color: theme("colors.text.dark-secondary"),
+        },
+
+        ".app-border": {
+          borderColor: theme("colors.border.light"),
+        },
+        ".dark .app-border": {
+          borderColor: theme("colors.border.dark"),
+        },
+
+        // INTERACTIVE ELEMENTS
+        ".app-button": {
+          backgroundColor: theme("colors.surface.secondary"),
+          color: theme("colors.text.primary"),
+          borderColor: theme("colors.border.light"),
+          transition: "all 0.2s ease-in-out",
+          "&:hover": {
+            backgroundColor: theme("colors.surface.tertiary"),
+            transform: "translateY(-1px)",
+            boxShadow: theme("boxShadow.depth-2"),
           },
-          "&::-webkit-scrollbar-thumb": {
-            background: theme("colors.gray.400"),
+        },
+        ".dark .app-button": {
+          backgroundColor: theme("colors.surface.dark-secondary"),
+          color: theme("colors.text.dark-primary"),
+          borderColor: theme("colors.border.dark"),
+          "&:hover": {
+            backgroundColor: theme("colors.surface.dark-tertiary"),
+          },
+        },
+
+        ".app-input": {
+          backgroundColor: theme("colors.surface.primary"),
+          color: theme("colors.text.primary"),
+          borderColor: theme("colors.border.light"),
+          "&:focus": {
+            borderColor: theme("colors.brand.purple.500"),
+            boxShadow: `0 0 0 3px ${theme("colors.brand.purple.500")}30`,
+            outline: "none",
+          },
+        },
+        ".dark .app-input": {
+          backgroundColor: theme("colors.surface.dark-secondary"),
+          color: theme("colors.text.dark-primary"),
+          borderColor: theme("colors.border.dark"),
+          "&:focus": {
+            borderColor: theme("colors.brand.purple.400"),
+            boxShadow: `0 0 0 3px ${theme("colors.brand.purple.400")}30`,
+          },
+        },
+
+        // GLASS EFFECT
+        ".glass-effect": {
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(16px) saturate(120%)",
+          WebkitBackdropFilter: "blur(16px) saturate(120%)",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+        },
+        ".dark .glass-effect": {
+          background: "rgba(0, 0, 0, 0.2)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+        },
+
+        // GRADIENT TEXT
+        ".gradient-text": {
+          background: `linear-gradient(135deg, ${theme(
+            "colors.brand.purple.500"
+          )}, ${theme("colors.brand.yellow.300")}, #06b6d4)`,
+          backgroundSize: "200% 200%",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          animation: "gradient-shift 3s ease infinite",
+        },
+
+        // SCROLLBAR STYLING
+        ".app-scrollbar": {
+          "&::-webkit-scrollbar": { width: "6px", height: "6px" },
+          "&::-webkit-scrollbar-track": {
+            background: theme("colors.surface.secondary"),
             borderRadius: "3px",
           },
-          "&::-webkit-scrollbar-thumb:hover": {
-            background: theme("colors.gray.500"),
+          "&::-webkit-scrollbar-thumb": {
+            background: theme("colors.text.tertiary"),
+            borderRadius: "3px",
+            "&:hover": {
+              background: theme("colors.text.secondary"),
+            },
           },
         },
-        ".dark .scrollbar-thin": {
+        ".dark .app-scrollbar": {
           "&::-webkit-scrollbar-track": {
-            background: theme("colors.gray.800"),
+            background: theme("colors.surface.dark-secondary"),
           },
           "&::-webkit-scrollbar-thumb": {
-            background: theme("colors.gray.600"),
-          },
-          "&::-webkit-scrollbar-thumb:hover": {
-            background: theme("colors.gray.500"),
-          },
-        },
-        ".backdrop-blur-modal": {
-          backdropFilter: "blur(4px)",
-        },
-
-        // CENTRALIZED COMPONENT CLASSES
-        ".theme-surface-primary": {
-          backgroundColor: theme("colors.neutral.50"),
-          color: theme("colors.gray.900"),
-        },
-        ".dark .theme-surface-primary": {
-          backgroundColor: theme("colors.neutral.800"),
-          color: theme("colors.white"),
-        },
-
-        ".theme-surface-secondary": {
-          backgroundColor: theme("colors.white"),
-          borderColor: theme("colors.neutral.200"),
-        },
-        ".dark .theme-surface-secondary": {
-          backgroundColor: theme("colors.neutral.700"),
-          borderColor: theme("colors.neutral.600"),
-        },
-
-        ".theme-text-primary": {
-          color: theme("colors.gray.900"),
-        },
-        ".dark .theme-text-primary": {
-          color: theme("colors.white"),
-        },
-
-        ".theme-text-secondary": {
-          color: theme("colors.gray.600"),
-        },
-        ".dark .theme-text-secondary": {
-          color: theme("colors.gray.400"),
-        },
-
-        ".theme-border": {
-          borderColor: theme("colors.neutral.200"),
-        },
-        ".dark .theme-border": {
-          borderColor: theme("colors.neutral.700"),
-        },
-
-        ".theme-hover": {
-          "&:hover": {
-            backgroundColor: theme("colors.neutral.200"),
-          },
-        },
-        ".dark .theme-hover": {
-          "&:hover": {
-            backgroundColor: theme("colors.neutral.700"),
+            background: theme("colors.text.dark-tertiary"),
+            "&:hover": {
+              background: theme("colors.text.dark-secondary"),
+            },
           },
         },
 
-        ".theme-button-primary": {
-          backgroundColor: theme("colors.neutral.100"),
-          borderColor: theme("colors.neutral.200"),
-          "&:hover": {
-            backgroundColor: theme("colors.neutral.200"),
-          },
+        // TRANSITIONS
+        ".app-transition": {
+          transition: "all 0.2s ease-in-out",
         },
-        ".dark .theme-button-primary": {
-          backgroundColor: theme("colors.neutral.600"),
-          borderColor: theme("colors.neutral.500"),
-          "&:hover": {
-            backgroundColor: theme("colors.neutral.500"),
-          },
+        ".app-transition-slow": {
+          transition: "all 0.3s ease-in-out",
         },
 
-        ".theme-input": {
-          backgroundColor: theme("colors.white"),
-          borderColor: theme("colors.neutral.200"),
-          color: theme("colors.gray.900"),
-          "&:focus": {
-            borderColor: theme("colors.blue.500"),
-            outline: "none",
-            boxShadow: `0 0 0 2px ${theme("colors.blue.500")}40`,
-          },
+        // NOTIFICATION ANIMATIONS
+        ".notification-enter": {
+          transform: "translateX(100%)",
+          opacity: "0",
         },
-        ".dark .theme-input": {
-          backgroundColor: theme("colors.neutral.700"),
-          borderColor: theme("colors.neutral.600"),
-          color: theme("colors.white"),
-          "&:focus": {
-            borderColor: theme("colors.blue.400"),
-            boxShadow: `0 0 0 2px ${theme("colors.blue.400")}40`,
-          },
+        ".notification-enter-active": {
+          transform: "translateX(0)",
+          opacity: "1",
+          transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        },
+        ".notification-exit": {
+          transform: "translateX(0)",
+          opacity: "1",
+        },
+        ".notification-exit-active": {
+          transform: "translateX(100%)",
+          opacity: "0",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.6, 1)",
         },
       };
       addUtilities(newUtilities);
     },
   ],
-  safelist: [
-    "animate-slideInRight",
-    "animate-fadeIn",
-    "animate-slideDown",
-    "animate-slow-rotate",
-    "text-shadow-glow",
-    "shadow-glow",
-    "backdrop-blur-modal",
-    "scrollbar-thin",
-    "prose-sm",
-    "prose-dark",
 
-    // Add centralized theme classes to safelist
-    "theme-surface-primary",
-    "theme-surface-secondary",
-    "theme-text-primary",
-    "theme-text-secondary",
-    "theme-border",
-    "theme-hover",
-    "theme-button-primary",
-    "theme-input",
+  safelist: [
+    // Core app utilities
+    "app-surface",
+    "app-surface-secondary",
+    "app-text",
+    "app-text-secondary",
+    "app-border",
+    "app-button",
+    "app-input",
+    "app-scrollbar",
+    "app-transition",
+    "app-transition-slow",
+
+    // Message components
+    "message",
+    "message--user",
+    "message--ai",
+    "message--visible",
+    "message-avatar",
+    "message__content",
+
+    // Code block components
+    "code-block",
+    "code-block--sql",
+    "code-block--mermaid",
+    "code-block--json",
+    "code-block--python",
+    "code-block--javascript",
+    "code-block__buttons",
+    "code-block__button",
+    "code-block__button--copy",
+    "code-block__button--run",
+    "code-block__button--copied",
+    "code-block__button--loading",
+    "code-block__icon",
+    "code-block__spinner",
+
+    // Table components
+    "table-wrapper",
+
+    // Mermaid components
+    "mermaid-diagram",
+    "mermaid-diagram--success",
+    "mermaid-diagram--error",
+    "mermaid-diagram__svg",
+
+    // Modern typewriter animations
+    "typing-animation",
+    "word-reveal",
+    "ai-thinking-modern",
+    "thinking-particle",
+
+    // Effects and animations
+    "glass-effect",
+    "gradient-text",
+    "animate-slide-in-right",
+    "animate-fade-in-up",
+    "animate-bounce-subtle",
+    "animate-gradient-shift",
+    "animate-pulse-glow",
+    "animate-float",
+    "animate-float-delayed",
+
+    // Notifications
+    "notification-enter",
+    "notification-enter-active",
+    "notification-exit",
+    "notification-exit-active",
+
+    // Shadows
+    "shadow-glass",
+    "shadow-glass-strong",
+    "shadow-glow-brand",
+    "shadow-glow-brand-strong",
+    "shadow-depth-1",
+    "shadow-depth-2",
+    "shadow-depth-3",
+
+    // Brand colors
+    "text-brand-purple-400",
+    "text-brand-purple-500",
+    "text-brand-purple-600",
+    "text-brand-yellow-300",
+
+    // Utility classes that might be added dynamically
+    "group",
+    "group-hover:opacity-100",
+    "focus-visible",
+    "sr-only",
   ],
 };

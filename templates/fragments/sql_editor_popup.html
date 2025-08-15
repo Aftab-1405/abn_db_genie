@@ -1,32 +1,51 @@
-<!-- SQL Editor Popup - UNIFIED COLORS, COMPACT ICON HEADER, 25% WIDTH, DYNAMIC HEIGHT -->
+<!-- Enhanced SQL Editor Popup -->
 <div id="sql-editor-popup"
-    class="fixed top-16 bottom-16 right-2 sm:right-4 w-full sm:w-3/4 lg:w-1/4 theme-surface-secondary theme-border border rounded-xl shadow-2xl z-30 transform transition-all duration-300 ease-in-out flex flex-col translate-x-full backdrop-blur-sm">
+    class="fixed top-16 bottom-16 right-2 sm:right-4 w-full sm:w-3/4 lg:w-1/4 app-surface-secondary app-border border rounded-xl shadow-glass-strong z-30 app-transition-slow flex flex-col translate-x-full backdrop-blur-sm">
 
-    <!-- SQL Editor Header with Compact Icon Buttons -->
+    <!-- SQL Editor Header with Enhanced Design -->
     <div
-        class="sql-editor-header flex items-center justify-between px-2 sm:px-3 py-1 sm:py-2 theme-border border-b theme-surface-secondary shrink-0 rounded-t-xl min-h-0">
-        <!-- Left side - Brand Icon Only -->
-        <div class="flex items-center gap-2 min-w-0 flex-1">
-            <img src="/static/images/Brand Product.png" alt="GeniE-ditor Logo"
-                class="h-5 w-5 object-contain rounded-sm flex-shrink-0" />
+        class="sql-editor-header flex items-center justify-between px-3 py-2 app-border border-b app-surface rounded-t-xl min-h-0 shadow-depth-1">
+        <!-- Left side - Enhanced Brand Section -->
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-6 h-6 bg-gradient-to-br from-brand-purple-500 to-brand-purple-600 rounded-lg flex items-center justify-center shadow-glow-brand animate-pulse-glow">
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3">
+                        </path>
+                    </svg>
+                </div>
+                <span class="app-text font-bold text-sm tracking-tight hidden sm:block">SQL Editor</span>
+            </div>
         </div>
 
-        <!-- Right side - Icon Action buttons only -->
+        <!-- Right side - Enhanced Icon Action buttons -->
         <div class="flex items-center gap-1 flex-shrink-0">
-            <!-- Execute Button (icon only, styled like close) -->
-            <button id="execute-query" title="Run (Ctrl+Enter)"
-                class="p-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200 group">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform"
+            <!-- Execute Button -->
+            <button id="execute-query" title="Run Query (Ctrl+Enter)"
+                class="app-button p-2 rounded-lg border-0 bg-green-600 hover:bg-green-700 text-white shadow-depth-1 hover:shadow-depth-2 group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
                     viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M5 3v18l15-9L5 3z" />
+                    <path d="M8 5v14l11-7z" />
                 </svg>
             </button>
-            <!-- Close Button (icon only) -->
-            <button id="sql-editor-close" title="Close Editor"
-                class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-200 group">
+
+            <!-- Clear Button -->
+            <button id="clear-editor" title="Clear Editor"
+                class="app-button p-2 rounded-lg border app-border hover:bg-brand-yellow-100 dark:hover:bg-brand-yellow-900/20 group">
                 <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform"
+                    class="h-4 w-4 text-brand-yellow-600 dark:text-brand-yellow-400 group-hover:scale-110 app-transition"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </button>
+
+            <!-- Close Button -->
+            <button id="sql-editor-close" title="Close Editor"
+                class="app-button p-2 rounded-lg border-0 bg-red-600 hover:bg-red-700 text-white shadow-depth-1 hover:shadow-depth-2 group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
                     viewBox="0 0 24 24" fill="currentColor">
                     <path fill-rule="evenodd"
                         d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm3.536 14.121a1 1 0 01-1.414 0L12 13.414 9.879 15.536a1 1 0 01-1.414-1.414L10.586 12 8.464 9.879a1 1 0 011.414-1.414L12 10.586l2.121-2.121a1 1 0 011.414 1.414L13.414 12l2.121 2.121a1 1 0 010 1.414z"
@@ -39,24 +58,35 @@
     <!-- SQL Editor Content Area -->
     <div class="sql-editor-content flex-1 flex flex-col min-h-0">
         <!-- Main Editor Area -->
-        <div class="flex-1 p-0 min-h-0">
+        <div class="flex-1 p-0 min-h-0 app-surface">
             <div id="sql-editor-container"
-                class="relative h-full overflow-hidden rounded-none theme-border border-0 theme-surface-secondary shadow-none bg-transparent">
+                class="relative h-full overflow-hidden app-surface shadow-none bg-transparent app-scrollbar">
                 <div id="sql-editor"
-                    class="h-full p-0 theme-text-primary font-mono text-sm overflow-auto leading-relaxed bg-transparent">
+                    class="h-full p-3 app-text font-mono text-sm overflow-auto leading-relaxed bg-transparent app-scrollbar">
                     <!-- CodeMirror will be initialized here -->
                 </div>
             </div>
         </div>
 
-        <!-- Minimal Status Bar -->
-        <div class="px-2 sm:px-3 py-1 sm:py-2 theme-border border-t theme-surface-secondary shrink-0 rounded-b-xl">
-            <div class="flex items-center justify-end text-xs theme-text-secondary">
+        <!-- Enhanced Status Bar -->
+        <div class="px-3 py-2 app-border border-t app-surface rounded-b-xl shadow-depth-1">
+            <div class="flex items-center justify-between text-xs app-text-secondary">
+                <!-- Status indicators -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="hidden sm:inline">Ready</span>
+                    </div>
+                </div>
+
+                <!-- Keyboard shortcut -->
                 <div class="flex items-center gap-1 sm:gap-2 font-medium flex-shrink-0">
-                    <kbd class="px-1 sm:px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl</kbd>
-                    <span class="hidden sm:inline">+</span>
-                    <kbd class="px-1 sm:px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs">Enter</kbd>
-                    <span class="ml-1 hidden sm:inline">to execute</span>
+                    <kbd
+                        class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Ctrl</kbd>
+                    <span class="hidden sm:inline app-text-tertiary">+</span>
+                    <kbd
+                        class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Enter</kbd>
+                    <span class="ml-2 hidden sm:inline app-text-tertiary">Run</span>
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 """Optimized secure database operations and queries - READ-ONLY VERSION"""
 
 import mysql.connector
-from database.connection import get_db_connection, get_current_db_name, get_cursor
+from database.connection import get_cursor
 from database.security import DatabaseSecurity
 import logging
 import time
