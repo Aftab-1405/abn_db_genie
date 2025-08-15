@@ -70,6 +70,25 @@ export function addMessage(elements, content, sender) {
 }
 
 /**
+ * Appends a chunk of streamed AI response to the message content.
+ * Creates the contentWrapper if it doesn't exist.
+ */
+export function appendGenieStreamChunk(elements, genieMessageElements, chunk) {
+  const textDiv = genieMessageElements.textDiv;
+  let contentContainer = textDiv.querySelector(".content-wrapper");
+
+  if (!contentContainer) {
+    contentContainer = document.createElement("div");
+    contentContainer.className = "content-wrapper";
+    textDiv.appendChild(contentContainer);
+  }
+
+  // Append the chunk directly. Markdown will be processed on finalization.
+  contentContainer.textContent += chunk;
+  scrollToBottom(elements);
+}
+
+/**
  * Add AI response with typing effect - simplified
  */
 export function addGenieResponseWithTypingEffect(elements, responseText) {

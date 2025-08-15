@@ -2,7 +2,10 @@
 import {
   addMessage,
   addGenieResponseWithTypingEffect,
+  appendGenieStreamChunk,
 } from "./components/message-handler.js";
+import { wrapCodeBlocks } from "./components/code-blocks.js";
+import { markdownService } from "./services/markdown-service.js";
 
 // —————————————————————————————————————————————————————————
 // 1) handleAIResponse: Called when server returns { status, response }
@@ -55,12 +58,41 @@ export async function sendUserInput(elements) {
       body: JSON.stringify({ prompt, conversation_id: convId }),
     });
 
-    if (!resp.ok) throw new Error("Network response was not ok.");
+    if (!resp.ok) {
+      throw new Error(`HTTP error! status: ${resp.status}`);
+    }
 
-    const data = await resp.json();
-    handleAIResponse(elements, data);
-  } catch {
-    handleError(elements, { status: "error", message: "Network error." });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullResponse = "";
+    let genieMessageElements = null; // To hold the elements for Genie's response
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      fullResponse += chunk;
+
+      if (!genieMessageElements) {
+        // Create the initial message element for Genie's response
+        genieMessageElements = addMessage(elements, "", "genie");
+      }
+      // Append the chunk to the Genie's message element incrementally
+      appendGenieStreamChunk(elements, genieMessageElements, chunk);
+    }
+    // After the stream is complete, process markdown and code blocks
+    if (genieMessageElements) {
+      const contentContainer = genieMessageElements.textDiv.querySelector(".content-wrapper");
+      if (contentContainer) {
+        contentContainer.innerHTML = markdownService.processFullMarkdown(fullResponse);
+        wrapCodeBlocks(contentContainer, elements);
+      }
+    }
+
+  } catch (error) {
+    console.error("Streaming fetch error:", error);
+    handleError(elements, { status: "error", message: `Network error: ${error.message}` });
   }
 }
 

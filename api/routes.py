@@ -1,7 +1,7 @@
 # File: api/routes.py
 """API routes for the application"""
 
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, Response
 from auth.decorators import login_required
 from database.operations import get_databases, fetch_database_info, execute_sql_query
 from database.connection import update_db_config, get_current_db_name, get_executor
@@ -30,17 +30,21 @@ def pass_userinput_to_gemini():
     logger.debug(f'Received prompt: {prompt} for conversation: {conversation_id}')
     
     try:
-        executor = get_executor()
-        future = executor.submit(GeminiService.send_message, conversation_id, prompt)
-        response = future.result()
-        logger.debug(f'Gemini response: {response}')
-        
-        # Store the conversation in Firestore
         user_id = session['user']
         FirestoreService.store_conversation(conversation_id, 'user', prompt, user_id)
-        FirestoreService.store_conversation(conversation_id, 'ai', response, user_id)
-        
-        return jsonify({'status': 'success', 'response': response})
+
+        def generate():
+            full_response_content = []
+            responses = GeminiService.send_message(conversation_id, prompt)
+            for chunk in responses:
+                text_chunk = chunk.text
+                full_response_content.append(text_chunk)
+                yield text_chunk
+            
+            # Store the complete conversation in Firestore after streaming
+            FirestoreService.store_conversation(conversation_id, 'ai', "".join(full_response_content), user_id)
+
+        return Response(generate(), mimetype='text/plain')
     except Exception as e:
         logger.error(f'Error querying Gemini: {e}')
         return jsonify({'status': 'error', 'message': str(e)})

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 genai.configure(api_key=Config.GEMINI_API_KEY)
 
 # Load Gemini model (as per current best practices)
-model = genai.GenerativeModel(model_name="models/gemini-2.5-pro")
+model = genai.GenerativeModel(model_name="models/gemini-2.5-flash")
 
 # In-memory chat session store
 chat_sessions = {}
@@ -100,8 +100,8 @@ class GeminiService:
 
         for attempt in range(retry_attempts):
             try:
-                response = chat_session.send_message(message)
-                return response.text
+                responses = chat_session.send_message(message, stream=True)
+                return responses
             except Exception as e:
                 logger.error(f'Attempt {attempt + 1} failed: {e}')
                 if attempt == retry_attempts - 1:
