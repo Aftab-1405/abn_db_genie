@@ -37,7 +37,7 @@ const ThemeManager = {
 
     // Prevent large UI transitions (colors, shadows, etc.) during theme switch.
     // Add a temporary guard class and remove it after two frames so regular UI transitions still work later.
-    html.classList.add('no-theme-transition');
+    html.classList.add("no-theme-transition");
 
     if (theme === "dark") {
       html.classList.add("dark");
@@ -48,12 +48,16 @@ const ThemeManager = {
     localStorage.setItem("theme", theme);
 
     // Allow other components to react immediately without triggering heavy transitions.
-    window.dispatchEvent(new CustomEvent("themeChanged", { detail: { theme } }));
+    window.dispatchEvent(
+      new CustomEvent("themeChanged", { detail: { theme } })
+    );
 
     // Remove guard after two frames to re-enable transitions for user interactions.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      html.classList.remove('no-theme-transition');
-    }));
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        html.classList.remove("no-theme-transition");
+      })
+    );
   },
 
   // Toggle between light and dark themes
@@ -66,20 +70,26 @@ const ThemeManager = {
 
   // Initialize theme on page load (backup in case inline script fails)
   initializeTheme() {
-  // If the inline script in index.html already applied the theme, skip re-applying to avoid flicker.
-  // The inline script sets the documentElement 'dark' class and persists a value; we can detect that.
-  const alreadyHasThemeClass = document.documentElement.classList.contains("dark") || document.documentElement.classList.contains("no-theme-transition");
-  const savedTheme = localStorage.getItem("theme");
+    // If the inline script in index.html already applied the theme, skip re-applying to avoid flicker.
+    // The inline script sets the documentElement 'dark' class and persists a value; we can detect that.
+    const alreadyHasThemeClass =
+      document.documentElement.classList.contains("dark") ||
+      document.documentElement.classList.contains("no-theme-transition");
+    const savedTheme = localStorage.getItem("theme");
 
-  if (alreadyHasThemeClass && savedTheme) {
-    // Theme already applied by server-side/inline script, only dispatch event to sync components.
-    window.dispatchEvent(new CustomEvent("themeChanged", { detail: { theme: savedTheme } }));
-    return;
-  }
+    if (alreadyHasThemeClass && savedTheme) {
+      // Theme already applied by server-side/inline script, only dispatch event to sync components.
+      window.dispatchEvent(
+        new CustomEvent("themeChanged", { detail: { theme: savedTheme } })
+      );
+      return;
+    }
 
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const theme = savedTheme || (prefersDark ? "dark" : "light");
-  this.setTheme(theme);
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    const theme = savedTheme || (prefersDark ? "dark" : "light");
+    this.setTheme(theme);
   },
 
   // Listen for system theme changes
