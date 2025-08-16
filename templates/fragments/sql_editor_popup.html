@@ -22,8 +22,9 @@
         <!-- Right side - Enhanced Icon Action buttons -->
         <div class="flex items-center gap-1 flex-shrink-0">
             <!-- Execute Button -->
-            <button id="execute-query" title="Run Query (Ctrl+Enter)"
-                class="app-button p-2 rounded-lg border-0 bg-green-600 hover:bg-green-700 text-white shadow-depth-1 hover:shadow-depth-2 group">
+            <button id="execute-query"
+                class="app-button p-2 rounded-lg border-0 bg-green-600 hover:bg-green-700 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
+                data-tooltip="Run (Ctrl+Enter)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
                     viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
@@ -31,8 +32,9 @@
             </button>
 
             <!-- Clear Button -->
-            <button id="clear-editor" title="Clear Editor"
-                class="app-button p-2 rounded-lg border app-border hover:bg-brand-yellow-100 dark:hover:bg-brand-yellow-900/20 group">
+            <button id="clear-editor"
+                class="app-button p-2 rounded-lg border app-border hover:bg-brand-yellow-100 dark:hover:bg-brand-yellow-900/20 group has-tooltip"
+                data-tooltip="Clear">
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="h-4 w-4 text-brand-yellow-600 dark:text-brand-yellow-400 group-hover:scale-110 app-transition"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,8 +45,9 @@
             </button>
 
             <!-- Close Button -->
-            <button id="sql-editor-close" title="Close Editor"
-                class="app-button p-2 rounded-lg border-0 bg-red-600 hover:bg-red-700 text-white shadow-depth-1 hover:shadow-depth-2 group">
+            <button id="sql-editor-close"
+                class="app-button p-2 rounded-lg border-0 bg-red-600 hover:bg-red-700 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
+                data-tooltip="Close">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
                     viewBox="0 0 24 24" fill="currentColor">
                     <path fill-rule="evenodd"

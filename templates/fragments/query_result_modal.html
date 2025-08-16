@@ -13,24 +13,14 @@
                 <span class="app-text font-bold text-base gradient-text">DB-Genie</span>
             </div>
             <div class="flex gap-2">
-                <button id="export-csv-button" type="button"
-                    class="app-button px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-brand-purple-500 focus:ring-offset-2 bg-brand-purple-500 text-white hover:bg-brand-purple-600 border-brand-purple-500"
-                    onclick="exportTableToCSV('query-result.csv')">
-                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                    </svg>
-                    Export
-                </button>
+                <!-- Export removed per request. Close as icon-only button for compact header -->
                 <button id="query-result-modal-close-button" type="button"
-                    class="app-button px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 border-red-600"
-                    onclick="hideModal()">
-                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="app-button p-2 rounded-full text-current hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-red-500 has-tooltip"
+                    aria-label="Close results" data-tooltip="Close" onclick="hideModal()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
                     </svg>
-                    Close
                 </button>
             </div>
         </div>
@@ -58,14 +48,18 @@
                 <strong>Note:</strong> DB-Genie's results may be incorrect. Always verify with your database.
             </p>
             <div id="show-viz-container">
-                <button id="show-viz-btn"
-                    class="app-button bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-semibold app-transition w-full sm:w-auto border border-green-600 shadow-depth-1 hover:shadow-depth-2">
-                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
-                        </path>
+                <!-- Icon-only visualize button for a compact footer -->
+                <button id="show-viz-btn" type="button"
+                    class="app-button p-2 rounded-full bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-300 has-tooltip"
+                    aria-label="Visualize results" data-tooltip="Visualize">
+                    <!-- Outline bar chart icon (stroke-based) -->
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="4" height="9" rx="1"></rect>
+                        <rect x="10" y="6" width="4" height="14" rx="1"></rect>
+                        <rect x="17" y="2" width="4" height="18" rx="1"></rect>
                     </svg>
-                    Visualize
+                    <span class="sr-only">Visualize results</span>
                 </button>
             </div>
         </div>

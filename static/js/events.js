@@ -112,8 +112,32 @@ export async function initializeApp(elements) {
   // Watch for system theme changes
   ThemeManager.watchSystemTheme();
 
-  // Load conversations automatically on page load
-  await fetchAndDisplayConversations(elements);
+  // Defer loading conversations slightly so the browser can paint the chat
+  // container and logo first. Use requestIdleCallback when available, else
+  // fallback to requestAnimationFrame + setTimeout to run after first paint.
+  const scheduleConversationsLoad = () => {
+    if (window.requestIdleCallback) {
+      requestIdleCallback(
+        async () => {
+          try {
+            await fetchAndDisplayConversations(elements);
+          } catch (e) {
+            // swallow — non-critical for first paint
+          }
+        },
+        { timeout: 500 }
+      );
+    } else {
+      requestAnimationFrame(() =>
+        setTimeout(
+          () => fetchAndDisplayConversations(elements).catch(() => {}),
+          60
+        )
+      );
+    }
+  };
+
+  scheduleConversationsLoad();
 
   // Clear any lingering conversation id from previous sessions so that
   // typing immediately after load (without clicking New Chat) creates a new

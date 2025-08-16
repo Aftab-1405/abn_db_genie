@@ -22,7 +22,111 @@
       transition: none !important;
       animation: none !important;
     }
+
+    /* Lightweight tooltip styles for icon-only buttons */
+    .has-tooltip {
+      position: relative;
+    }
+
+    .has-tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      line-height: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 9999;
+    }
+
+    .has-tooltip[data-tooltip-pos="bottom"]::after {
+      top: calc(100% + 8px);
+      bottom: auto;
+      transform: translateX(-50%);
+    }
+
+    .has-tooltip[data-tooltip-pos="left-edge"]::after {
+      left: 6px;
+      transform: translateX(0) translateY(-2px);
+    }
+
+    .has-tooltip[data-tooltip-pos="right-edge"]::after {
+      left: auto;
+      right: 6px;
+      transform: translateX(0) translateY(-2px);
+    }
+
+    .has-tooltip:focus::after,
+    .has-tooltip:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    /* Theme-aware tooltip colors */
+    .dark .has-tooltip::after {
+      background: rgba(255, 255, 255, 0.92);
+      color: #111827;
+      /* neutral-900 */
+    }
   </style>
+  <script>
+    // Position tooltips so they never overflow the viewport.
+    (function () {
+      const tooltipTargets = () => Array.from(document.querySelectorAll('.has-tooltip'));
+
+      function compute() {
+        tooltipTargets().forEach((el) => computeForElement(el));
+      }
+
+      // Compute for a single element (used for hover/focus delegation)
+      function computeForElement(el) {
+        if (!el || !el.getBoundingClientRect) return;
+        const rect = el.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // Prefer above the element, but flip to bottom if not enough space
+        const enoughAbove = rect.top > 48;
+        const enoughBelow = (vh - rect.bottom) > 48;
+
+        if (!enoughAbove && enoughBelow) {
+          el.setAttribute('data-tooltip-pos', 'bottom');
+        } else if (rect.left < 64) {
+          el.setAttribute('data-tooltip-pos', 'left-edge');
+        } else if (rect.right > vw - 64) {
+          el.setAttribute('data-tooltip-pos', 'right-edge');
+        } else {
+          el.removeAttribute('data-tooltip-pos');
+        }
+      }
+
+      // Run after first paint and on resize/scroll
+      requestAnimationFrame(() => setTimeout(compute, 120));
+      window.addEventListener('resize', compute);
+      window.addEventListener('scroll', compute, { passive: true });
+      document.addEventListener('DOMContentLoaded', compute);
+
+      // Recompute placement on hover (pointerover) and on keyboard focus so
+      // tooltips always position correctly after any layout change or click.
+      document.addEventListener('pointerover', (e) => {
+        const el = e.target && e.target.closest && e.target.closest('.has-tooltip');
+        if (el) computeForElement(el);
+      }, { passive: true });
+
+      document.addEventListener('focusin', (e) => {
+        const el = e.target && e.target.closest && e.target.closest('.has-tooltip');
+        if (el) computeForElement(el);
+      });
+    })();
+  </script>
   <script>
     (function () {
       // Add a guard class to disable transitions until theme is set.
@@ -46,11 +150,55 @@
       }));
     })();
   </script>
+  <script>
+    // Ensure tooltips opened by mouse click are dismissed when the pointer leaves
+    // the element. Keyboard focus still shows tooltips (no change).
+    (function () {
+      document.addEventListener('pointerdown', (e) => {
+        const el = e.target.closest && e.target.closest('.has-tooltip');
+        if (!el) return;
+
+        // Only treat actual pointer interactions (mouse/touch/stylus)
+        // For keyboard focus, there will be no pointerdown on the element.
+        // Install a one-time pointerleave handler to remove focus when pointer exits.
+        const onLeave = () => {
+          try {
+            if (document.activeElement === el) el.blur();
+          } catch (err) { }
+          el.removeAttribute('data-tooltip-pos'); // allow reposition recalculation later
+          el.removeEventListener('pointerleave', onLeave);
+        };
+
+        // If pointer leaves the target, blur it so :focus-based tooltip hides.
+        el.addEventListener('pointerleave', onLeave);
+      }, { passive: true });
+
+      // Also, clicking elsewhere should remove any transient tooltip state quickly.
+      document.addEventListener('click', (e) => {
+        const els = document.querySelectorAll('.has-tooltip');
+        els.forEach((el) => {
+          // If element is focused but not hovered, blur it to hide tooltip
+          const rect = el.getBoundingClientRect();
+          const isHovered = !!el.matches(':hover');
+          if (document.activeElement === el && !isHovered) {
+            try { el.blur(); } catch (err) { }
+          }
+        });
+      });
+    })();
+  </script>
 
   <!-- Critical resource preloading for performance -->
   <link rel="preload" href="/static/styles.css" as="style">
   <link rel="preload" href="/static/images/Brand Logo.png" as="image">
+  <!-- Preload the primary product logo used in the chat area to ensure the
+    centered logo is available for first-paint. -->
+  <link rel="preload" href="/static/images/Brand Product.png" as="image">
   <link rel="preload" href="/static/images/user.png" as="image">
+
+  <!-- Preconnect to heavy CDNs early to reduce DNS/TCP/TLS latency -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
   <!-- Critical CSS -->
   <link rel="stylesheet" href="/static/styles.css">
@@ -128,10 +276,12 @@
   <script async src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
 
   <!-- Highlight.js with language support -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+  <!-- Defer highlight.js to avoid blocking initial render; it will execute
+    after parsing (deferred) and not block paint. -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
 
   <!-- Main application script -->
   <script type="module" src="/static/script.js"></script>
