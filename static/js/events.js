@@ -871,6 +871,12 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
   function openEditor() {
     sqlEditorPopup.classList.remove("translate-x-full");
     sqlEditorPopup.classList.add("translate-x-0");
+    sqlEditorPopup.classList.remove(
+      "opacity-0",
+      "pointer-events-none",
+      "invisible"
+    );
+    sqlEditorPopup.setAttribute("aria-hidden", "false");
     sqlEditorState.isOpen = true;
 
     // Focus on editor if CodeMirror is available
@@ -885,6 +891,13 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
     // Hide the popup completely and reset all styles
     sqlEditorPopup.classList.remove("translate-x-0");
     sqlEditorPopup.classList.add("translate-x-full");
+    // also make it fully transparent and non-interactive to avoid any visible remnants
+    sqlEditorPopup.classList.add(
+      "opacity-0",
+      "pointer-events-none",
+      "invisible"
+    );
+    sqlEditorPopup.setAttribute("aria-hidden", "true");
     sqlEditorState.isOpen = false;
     sqlEditorPopup.style.height = "";
     sqlEditorPopup.classList.remove("min-h-0");

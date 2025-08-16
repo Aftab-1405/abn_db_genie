@@ -933,6 +933,18 @@
                     checkbox.value = colName;
                     checkbox.className = "rounded text-indigo-600 focus:ring-indigo-500";
 
+                    // Detect numeric-y suitability and mark UI
+                    const isNumeric = isNumericColumn(idx);
+                    if (!isNumeric) {
+                        // mark visually so users know this column is non-numeric
+                        wrapper.classList.add('opacity-70');
+                        const badge = document.createElement('span');
+                        badge.className = 'ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+                        badge.textContent = 'non-numeric';
+                        badge.title = 'This column contains mostly non-numeric values and is usually unsuitable for numeric Y axes.';
+                        wrapper.appendChild(badge);
+                    }
+
                     const label = document.createElement("label");
                     label.setAttribute("for", `viz-y-${idx}`);
                     label.className = "ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-grow";
@@ -1226,13 +1238,53 @@
 
                     // Only add numeric-looking columns to aggregate
                     const isNumeric = rows.some(row => !isNaN(parseFloat(row[fields.indexOf(field)])));
-                    if (isNumeric) {
+                    // also use helper for consistency
+                    const idx = fields.indexOf(field);
+                    if (isNumericColumn(idx)) {
                         const aggOpt = document.createElement("option");
                         aggOpt.value = field;
                         aggOpt.textContent = field;
                         aggregateSelect.appendChild(aggOpt);
                     }
                 });
+            }
+
+            // Helper: determine if a column is numeric by sampling rows
+            function isNumericColumn(colIndex) {
+                if (colIndex < 0) return false;
+                // sample up to first 200 rows for performance
+                const sampleSize = Math.min(rows.length, 200);
+                let numericCount = 0;
+                for (let i = 0; i < sampleSize; i++) {
+                    const v = rows[i][colIndex];
+                    if (v === null || v === undefined || v === '') continue;
+                    const n = parseFloat(String(v).replace(/,/g, ''));
+                    if (!isNaN(n) && isFinite(n)) numericCount++;
+                }
+                // consider numeric if at least 30% of sample parses as numbers
+                return sampleSize === 0 ? false : (numericCount / sampleSize) >= 0.3;
+            }
+
+            // Helper: detect if column is date-like (ISO or common date formats)
+            function isDateColumn(colIndex) {
+                if (colIndex < 0) return false;
+                const sampleSize = Math.min(rows.length, 100);
+                let dateCount = 0;
+                for (let i = 0; i < sampleSize; i++) {
+                    const v = rows[i][colIndex];
+                    if (!v) continue;
+                    const d = new Date(v);
+                    if (!isNaN(d.getTime())) dateCount++;
+                }
+                return sampleSize === 0 ? false : (dateCount / sampleSize) >= 0.5;
+            }
+
+            function formatNumber(val) {
+                try {
+                    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(val);
+                } catch (e) {
+                    return String(val);
+                }
             }
 
             function calculateAggregation() {
@@ -1707,6 +1759,19 @@
                     return;
                 }
 
+                // Ensure selected Y fields have numeric data for numeric chart types
+                const requiresNumeric = ['bar', 'line', 'scatter', 'doughnut', 'pie', 'radar'];
+                if (requiresNumeric.includes(chartType)) {
+                    const bad = yFields.filter(y => {
+                        const idx = fields.indexOf(y);
+                        return !isNumericColumn(idx);
+                    });
+                    if (bad.length > 0) {
+                        showNotification(`Selected Y column(s) appear non-numeric: ${bad.join(', ')}. Please choose numeric columns.`, 'error');
+                        return;
+                    }
+                }
+
                 // Use filtered data for chart generation
                 const chartData = prepareChartData(xField, yFields, chartType);
                 createChart(chartData, chartType);
@@ -1728,8 +1793,10 @@
                     const yi = yIndices[i];
                     const data = filteredRows.map(r => { // Use filtered data
                         const val = r[yi];
-                        const num = parseFloat(val);
-                        return isNaN(num) ? 0 : num;
+                        if (val === null || val === undefined || String(val).trim() === '') return null;
+                        // remove commas and parse
+                        const num = parseFloat(String(val).replace(/,/g, ''));
+                        return isNaN(num) ? null : num;
                     });
 
                     return {
@@ -1788,26 +1855,7 @@
                                 mode: 'index'
                             }
                         },
-                        scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' ? {
-                            x: {
-                                display: true,
-                                title: {
-                                    display: true,
-                                    text: data.xField,
-                                    font: { size: 14, weight: 'bold', family: 'Inter' }
-                                },
-                                grid: { display: showGrid }
-                            },
-                            y: {
-                                display: true,
-                                title: {
-                                    display: true,
-                                    text: data.yFields.join(", "),
-                                    font: { size: 14, weight: 'bold', family: 'Inter' }
-                                },
-                                grid: { display: showGrid }
-                            }
-                        } : {},
+                        scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' ? buildScalesConfig(data, chartType, showGrid) : {},
                         animation: {
                             duration: 1000,
                             easing: 'easeInOutQuart'
@@ -1844,6 +1892,69 @@
                 }
 
                 activeChart = new Chart(ctx, config);
+            }
+
+            // Build scales config with numeric/date detection and formatting
+            function buildScalesConfig(data, chartType, showGrid) {
+                const xIndex = fields.indexOf(data.xField);
+                const xIsNumeric = isNumericColumn(xIndex);
+                const xIsDate = isDateColumn(xIndex);
+
+                const xScale = {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: data.xField,
+                        font: { size: 14, weight: 'bold', family: 'Inter' }
+                    },
+                    grid: { display: showGrid }
+                };
+
+                // y title
+                const yTitle = {
+                    display: true,
+                    text: data.yFields.join(", "),
+                    font: { size: 14, weight: 'bold', family: 'Inter' }
+                };
+
+                const yScale = {
+                    display: true,
+                    title: yTitle,
+                    grid: { display: showGrid },
+                    ticks: {
+                        callback: function (val) {
+                            return formatNumber(val);
+                        }
+                    }
+                };
+
+                if (xIsNumeric) {
+                    // convert labels to numbers for linear scale
+                    try {
+                        data.labels = data.labels.map(l => {
+                            const n = parseFloat(String(l).replace(/,/g, ''));
+                            return isNaN(n) ? l : n;
+                        });
+                        xScale.type = 'linear';
+                        xScale.ticks = { callback: (v) => formatNumber(v) };
+                    } catch (e) { }
+                } else if (xIsDate) {
+                    // format date-like labels; keep as category but format ticks
+                    xScale.ticks = {
+                        callback: function (val, index) {
+                            const raw = data.labels[index];
+                            const d = new Date(raw);
+                            if (!isNaN(d.getTime())) {
+                                return d.toLocaleDateString();
+                            }
+                            return raw;
+                        }
+                    };
+                } else {
+                    // categorical labels: nothing special
+                }
+
+                return { x: xScale, y: yScale };
             }
 
             function regenerateChart() {
@@ -1899,8 +2010,39 @@
             }
 
             function exportCSV(data, headers, filename) {
-                let csv = headers.join(',') + '\n';
-                csv += data.map(row => row.join(',')).join('\n');
+                // headers: array of header names OR array-like fields
+                const cols = Array.isArray(headers) ? headers : [];
+
+                function escapeCell(cell) {
+                    if (cell === null || cell === undefined) return '';
+                    const s = String(cell);
+                    // Escape double quotes and wrap in quotes if needed
+                    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                        return '"' + s.replace(/"/g, '""') + '"';
+                    }
+                    return s;
+                }
+
+                let csv = '';
+                if (cols.length > 0) csv = cols.map(escapeCell).join(',') + '\n';
+
+                // data can be rows-of-arrays or rows-of-objects
+                data.forEach(row => {
+                    if (Array.isArray(row)) {
+                        csv += row.map(escapeCell).join(',') + '\n';
+                    } else if (typeof row === 'object' && row !== null) {
+                        // map using headers if provided
+                        if (cols.length > 0) {
+                            const line = cols.map(h => escapeCell(row[h]));
+                            csv += line.join(',') + '\n';
+                        } else {
+                            const vals = Object.values(row).map(escapeCell);
+                            csv += vals.join(',') + '\n';
+                        }
+                    } else {
+                        csv += escapeCell(row) + '\n';
+                    }
+                });
 
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const link = document.createElement('a');

@@ -80,10 +80,13 @@ function setupShowVizButton(fields, rows) {
     try {
       sessionStorage.setItem("viz_fields", JSON.stringify(latestFields));
       sessionStorage.setItem("viz_rows", JSON.stringify(latestRows));
-      window.open("static/visualize.html", "_blank");
+      // open the visualization tool in a new tab (root-relative)
+      window.open("/static/visualize.html", "_blank");
     } catch (err) {
       console.error("Failed to store visualization data:", err);
       alert("Could not prepare visualization data.");
     }
   });
+
+  // visualization preview removed; preview handled on dedicated visualize.html
 }

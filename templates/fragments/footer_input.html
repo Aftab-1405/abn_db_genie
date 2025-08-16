@@ -2,15 +2,15 @@
 <footer class="flex-shrink-0 w-full px-3 sm:px-4 md:px-0 app-surface">
     <!-- Consistent container width matching chat area -->
     <div
-        class="flex mt-3 mb-3 sm:mt-4 sm:mb-4 items-end w-full max-w-none md:max-w-4xl md:w-4/5 lg:w-3/5 md:mx-auto relative rounded-2xl sm:rounded-3xl app-surface shadow-depth-1 app-border border min-w-0">
+        class="flex mt-3 mb-3 sm:mt-4 sm:mb-4 items-center w-full max-w-none md:max-w-4xl md:w-4/5 lg:w-3/5 md:mx-auto relative rounded-2xl sm:rounded-3xl app-surface shadow-depth-1 app-border border min-w-0">
         <!-- Improved mobile textarea sizing and touch targets -->
         <textarea id="text-input" placeholder="Chat with DB-Genie 😊" rows="1"
             class="flex-grow p-3 pr-12 sm:p-4 sm:pr-14 bg-transparent focus:outline-none app-text resize-none overflow-hidden max-h-32 sm:max-h-48 min-w-0 text-sm sm:text-base leading-relaxed"
             aria-label="Message input"></textarea>
 
-        <!-- Improved mobile touch target -->
+        <!-- Improved mobile touch target (vertically centered) -->
         <button id="send-icon"
-            class="absolute right-2 bottom-2 sm:right-4 sm:bottom-3 cursor-pointer p-1 sm:p-0 app-button text-current hover:text-brand-purple-500 active:scale-95 app-transition touch-manipulation has-tooltip"
+            class="absolute right-2 top-0 bottom-0 m-auto sm:right-4 cursor-pointer app-button text-current hover:text-brand-purple-500 app-transition touch-manipulation has-tooltip h-10 w-10 p-0 flex items-center justify-center rounded-full z-20 focus:outline-none"
             aria-label="Send message" data-tooltip="Send">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="sm:w-6 sm:h-6" fill="none"
                 viewBox="0 0 32 32">
