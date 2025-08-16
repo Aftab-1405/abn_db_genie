@@ -266,7 +266,11 @@ export function initializeEventBindings(elements) {
 
     if (data) {
       sessionStorage.setItem("conversation_id", data.conversation_id);
+      // Clear chat area and restore the centered AI logo (same as initial load)
       elements.chat.innerHTML = "";
+      if (elements.aiLogoContainer) {
+        elements.aiLogoContainer.style.display = "flex";
+      }
       showNotification(elements, "New conversation started", "success");
       // Refresh conversation list to show the new conversation
       await fetchAndDisplayConversations(elements);
