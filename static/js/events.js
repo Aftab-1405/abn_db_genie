@@ -478,6 +478,47 @@ function populateConversations(elements, conversations) {
             "success"
           );
 
+          // If the deleted conversation was currently open, animate-hide the chat area,
+          // then clear and restore the centered AI logo (smooth UX).
+          const currentConv = sessionStorage.getItem("conversation_id");
+          if (currentConv && String(currentConv) === String(conv.id)) {
+            sessionStorage.removeItem("conversation_id");
+
+            const chatEl = elements && elements.chat;
+            const logoEl = elements && elements.aiLogoContainer;
+
+            if (chatEl) {
+              // If chat is already empty, just ensure logo is visible
+              if (!chatEl.hasChildNodes()) {
+                chatEl.innerHTML = "";
+                if (logoEl) logoEl.style.display = "flex";
+              } else {
+                // Apply inline transition (no changes to Tailwind files)
+                chatEl.style.transition = "opacity 220ms ease, transform 220ms ease";
+                // Ensure starting state
+                chatEl.style.opacity = chatEl.style.opacity || "1";
+                chatEl.style.transform = chatEl.style.transform || "translateY(0)";
+
+                // Trigger the fade+lift
+                requestAnimationFrame(() => {
+                  chatEl.style.opacity = "0";
+                  chatEl.style.transform = "translateY(-8px)";
+                });
+
+                // After transition, clear content and reset styles
+                setTimeout(() => {
+                  chatEl.innerHTML = "";
+                  chatEl.style.transition = "";
+                  chatEl.style.opacity = "";
+                  chatEl.style.transform = "";
+                  if (logoEl) logoEl.style.display = "flex";
+                }, 260);
+              }
+            } else {
+              if (logoEl) logoEl.style.display = "flex";
+            }
+          }
+
           // If this was the last conversation, show the no conversations message
           if (conversationListContainer.children.length === 0) {
             const emptyMessage = document.createElement("div");
