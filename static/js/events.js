@@ -114,6 +114,16 @@ export async function initializeApp(elements) {
 
   // Load conversations automatically on page load
   await fetchAndDisplayConversations(elements);
+
+  // Clear any lingering conversation id from previous sessions so that
+  // typing immediately after load (without clicking New Chat) creates a new
+  // conversation by default. If the user intentionally opens a conversation
+  // via the UI, loadConversation sets the conversation id.
+  try {
+    sessionStorage.removeItem("conversation_id");
+  } catch (e) {
+    // ignore (e.g., if sessionStorage not available)
+  }
 }
 
 // Bind all UI interactions and app events
@@ -589,6 +599,14 @@ function upsertConversationPreview(elements, conversationId, preview) {
     elements.conversationList || document.getElementById("conversation-list");
   if (!conversationListContainer) return;
 
+  // If there's a placeholder saying "No conversations yet", remove it when we upsert a real conversation
+  const placeholder = conversationListContainer.querySelector(
+    "#no-conversations-message"
+  );
+  if (placeholder) {
+    placeholder.remove();
+  }
+
   // Try to find existing item
   const existing = conversationListContainer.querySelector(
     `[data-conversation-id="${conversationId}"]`
@@ -629,8 +647,35 @@ function upsertConversationPreview(elements, conversationId, preview) {
         contentDiv.appendChild(d);
       }
     }
-    // Move to top for recency
-    conversationListContainer.prepend(existing);
+    // If this is the currently open conversation, avoid moving/animating it (prevents blinking);
+    const currentConv = sessionStorage.getItem("conversation_id");
+    if (!currentConv || String(currentConv) !== String(conversationId)) {
+      // Move to top for recency
+      conversationListContainer.prepend(existing);
+      // Highlight updated item briefly to draw attention
+      try {
+        if (existing.animate) {
+          existing.animate(
+            [
+              { backgroundColor: "rgba(250, 204, 21, 0.16)" },
+              { backgroundColor: "transparent" },
+            ],
+            { duration: 420, easing: "ease-out" }
+          );
+        } else {
+          existing.style.transition = "background-color 420ms ease-out";
+          existing.style.backgroundColor = "rgba(250, 204, 21, 0.16)";
+          setTimeout(() => {
+            existing.style.backgroundColor = "";
+            existing.style.transition = "";
+          }, 440);
+        }
+      } catch (e) {
+        // noop
+      }
+    } else {
+      // For the active conversation, only update the date silently (no move/animation)
+    }
     return;
   }
 
@@ -662,6 +707,54 @@ function upsertConversationPreview(elements, conversationId, preview) {
 
   // Insert at top
   conversationListContainer.prepend(conversationItem);
+  // Slide/fade-in + highlight new item to draw attention (animate in parallel)
+  try {
+    // Slide + fade-in
+    if (conversationItem.animate) {
+      conversationItem.animate(
+        [
+          { opacity: 0, transform: "translateX(-8px)" },
+          { opacity: 1, transform: "translateX(0)" },
+        ],
+        { duration: 320, easing: "cubic-bezier(0.2, 0, 0, 1)" }
+      );
+    } else {
+      // Fallback: inline transition
+      conversationItem.style.opacity = "0";
+      conversationItem.style.transform = "translateX(-8px)";
+      conversationItem.style.transition =
+        "opacity 320ms cubic-bezier(0.2,0,0,1), transform 320ms cubic-bezier(0.2,0,0,1)";
+      requestAnimationFrame(() => {
+        conversationItem.style.opacity = "1";
+        conversationItem.style.transform = "translateX(0)";
+      });
+      setTimeout(() => {
+        conversationItem.style.transition = "";
+        conversationItem.style.transform = "";
+        conversationItem.style.opacity = "";
+      }, 360);
+    }
+
+    // Subtle highlight after (runs in parallel)
+    if (conversationItem.animate) {
+      conversationItem.animate(
+        [
+          { backgroundColor: "rgba(250, 204, 21, 0.16)" },
+          { backgroundColor: "transparent" },
+        ],
+        { duration: 420, easing: "ease-out" }
+      );
+    } else {
+      conversationItem.style.transition = "background-color 420ms ease-out";
+      conversationItem.style.backgroundColor = "rgba(250, 204, 21, 0.16)";
+      setTimeout(() => {
+        conversationItem.style.backgroundColor = "";
+        conversationItem.style.transition = "";
+      }, 440);
+    }
+  } catch (e) {
+    // noop
+  }
 }
 
 // Load a specific conversation thread

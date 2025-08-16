@@ -26,7 +26,16 @@ def index():
 def pass_userinput_to_gemini():
     data = request.get_json()
     prompt = data['prompt']
-    conversation_id = data.get('conversation_id', session.get('conversation_id'))
+    # Prefer the conversation_id explicitly provided by the client. If the
+    # client omits it (null/undefined), create a fresh conversation id so the
+    # prompt starts a new conversation instead of being attached to a prior
+    # server-side session value.
+    conversation_id = data.get('conversation_id')
+    # If there's no conversation id provided by the client, create one and
+    # store it in the server session so subsequent messages in this tab use it.
+    if not conversation_id:
+        conversation_id = str(uuid.uuid4())
+        session['conversation_id'] = conversation_id
     logger.debug(f'Received prompt: {prompt} for conversation: {conversation_id}')
     
     try:
@@ -40,14 +49,16 @@ def pass_userinput_to_gemini():
                 text_chunk = chunk.text
                 full_response_content.append(text_chunk)
                 yield text_chunk
-            
+
             # Store the complete conversation in Firestore after streaming
             FirestoreService.store_conversation(conversation_id, 'ai', "".join(full_response_content), user_id)
 
-        return Response(generate(), mimetype='text/plain')
+        # Attach the conversation id as a response header so clients can persist it when streaming
+        headers = {'X-Conversation-Id': conversation_id}
+        return Response(generate(), mimetype='text/plain', headers=headers)
     except Exception as e:
         logger.error(f'Error querying Gemini: {e}')
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_bp.route('/get_conversations', methods=['GET'])
 @login_required

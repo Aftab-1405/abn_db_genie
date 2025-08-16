@@ -62,6 +62,16 @@ export async function sendUserInput(elements) {
       throw new Error(`HTTP error! status: ${resp.status}`);
     }
 
+    // Persist conversation id from response header (server creates one if missing)
+    try {
+      const returnedConvId = resp.headers.get("X-Conversation-Id");
+      if (returnedConvId) {
+        sessionStorage.setItem("conversation_id", returnedConvId);
+      }
+    } catch (e) {
+      // ignore
+    }
+
     const reader = resp.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let fullResponse = "";
@@ -82,16 +92,13 @@ export async function sendUserInput(elements) {
       appendGenieStreamChunk(elements, genieMessageElements, chunk);
     }
     // Dispatch an event so the sidebar can update the conversation preview in real-time
-    try {
-      const dispatchedConvId = convId || (await resp.json()).conversation_id;
-      window.dispatchEvent(
-        new CustomEvent("conversationPreviewUpdated", {
-          detail: { conversation_id: dispatchedConvId, preview: prompt },
-        })
-      );
-    } catch (e) {
-      // ignore parsing error; this is best-effort
-    }
+    const dispatchedConvId =
+      sessionStorage.getItem("conversation_id") || convId;
+    window.dispatchEvent(
+      new CustomEvent("conversationPreviewUpdated", {
+        detail: { conversation_id: dispatchedConvId, preview: prompt },
+      })
+    );
     // After the stream is complete, process markdown and code blocks
     if (genieMessageElements) {
       const contentContainer =
