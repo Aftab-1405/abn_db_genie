@@ -149,6 +149,16 @@ export function initializeEventBindings(elements) {
     }
   });
 
+  // Update sidebar previews in real-time when a new prompt is sent
+  window.addEventListener("conversationPreviewUpdated", (e) => {
+    const detail = e.detail || {};
+    const conversationId = detail.conversation_id;
+    const preview = detail.preview;
+    if (conversationId) {
+      upsertConversationPreview(elements, conversationId, preview);
+    }
+  });
+
   // Initialize theme toggle state on page load
   if (elements.themeToggle) {
     elements.themeToggle.checked = ThemeManager.getCurrentTheme() === "dark";
@@ -423,6 +433,8 @@ function populateConversations(elements, conversations) {
 
   conversations.forEach((conv) => {
     const conversationItem = document.createElement("div");
+    // Attach conversation id so we can update this item later without refetching
+    conversationItem.setAttribute("data-conversation-id", conv.id);
     conversationItem.className =
       "conversation-item cursor-pointer block px-4 py-3 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-500 transition-all duration-200 w-full max-w-full";
 
@@ -494,10 +506,12 @@ function populateConversations(elements, conversations) {
                 if (logoEl) logoEl.style.display = "flex";
               } else {
                 // Apply inline transition (no changes to Tailwind files)
-                chatEl.style.transition = "opacity 220ms ease, transform 220ms ease";
+                chatEl.style.transition =
+                  "opacity 220ms ease, transform 220ms ease";
                 // Ensure starting state
                 chatEl.style.opacity = chatEl.style.opacity || "1";
-                chatEl.style.transform = chatEl.style.transform || "translateY(0)";
+                chatEl.style.transform =
+                  chatEl.style.transform || "translateY(0)";
 
                 // Trigger the fade+lift
                 requestAnimationFrame(() => {
@@ -567,6 +581,87 @@ function populateConversations(elements, conversations) {
   });
 
   conversationListContainer.appendChild(frag);
+}
+
+// Upsert (update or insert) a conversation preview in the sidebar
+function upsertConversationPreview(elements, conversationId, preview) {
+  const conversationListContainer =
+    elements.conversationList || document.getElementById("conversation-list");
+  if (!conversationListContainer) return;
+
+  // Try to find existing item
+  const existing = conversationListContainer.querySelector(
+    `[data-conversation-id="${conversationId}"]`
+  );
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString();
+
+  if (existing) {
+    // Preserve the original header (first prompt). Only update or create the single date element.
+    const contentDiv =
+      existing.querySelector(".flex.flex-col") || existing.querySelector("div");
+    if (contentDiv) {
+      const headerEl = contentDiv.querySelector(".font-medium");
+      const dateEl = contentDiv.querySelector(".text-xs");
+
+      // Set header only if it's missing or placeholder
+      const headerText =
+        headerEl && headerEl.textContent ? headerEl.textContent.trim() : "";
+      if (!headerEl || headerText === "" || headerText === "New Conversation") {
+        if (headerEl) {
+          headerEl.textContent = preview || "New Conversation";
+        } else {
+          const h = document.createElement("div");
+          h.className =
+            "font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full";
+          h.textContent = preview || "New Conversation";
+          contentDiv.prepend(h);
+        }
+      }
+
+      // Update or create the single date element
+      if (dateEl) {
+        dateEl.textContent = formattedDate;
+      } else {
+        const d = document.createElement("div");
+        d.className = "text-xs text-neutral-500 dark:text-neutral-400";
+        d.textContent = formattedDate;
+        contentDiv.appendChild(d);
+      }
+    }
+    // Move to top for recency
+    conversationListContainer.prepend(existing);
+    return;
+  }
+
+  // Create a new conversation item and prepend
+  const conversationItem = document.createElement("div");
+  conversationItem.setAttribute("data-conversation-id", conversationId);
+  conversationItem.className =
+    "conversation-item cursor-pointer block px-4 py-3 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-500 transition-all duration-200 w-full max-w-full group";
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "flex justify-between items-start";
+
+  const contentDiv = document.createElement("div");
+  contentDiv.className =
+    "flex flex-col gap-1 flex-grow min-w-0 w-full max-w-full";
+  contentDiv.innerHTML = `\n      <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full">\n        ${
+    preview || "New Conversation"
+  }\n      </div>\n      <div class="text-xs text-neutral-500 dark:text-neutral-400">\n        ${formattedDate}\n      </div>\n    `;
+
+  // Add a minimal delete button to match UI (no handler here — user can refresh)
+  const deleteButton = document.createElement("button");
+  deleteButton.className =
+    "delete-conversation-btn opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-all duration-200";
+  deleteButton.innerHTML = `\n      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">\n        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />\n      </svg>\n    `;
+
+  wrapper.appendChild(contentDiv);
+  wrapper.appendChild(deleteButton);
+  conversationItem.appendChild(wrapper);
+
+  // Insert at top
+  conversationListContainer.prepend(conversationItem);
 }
 
 // Load a specific conversation thread

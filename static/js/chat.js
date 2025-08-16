@@ -81,18 +81,32 @@ export async function sendUserInput(elements) {
       // Append the chunk to the Genie's message element incrementally
       appendGenieStreamChunk(elements, genieMessageElements, chunk);
     }
+    // Dispatch an event so the sidebar can update the conversation preview in real-time
+    try {
+      const dispatchedConvId = convId || (await resp.json()).conversation_id;
+      window.dispatchEvent(
+        new CustomEvent("conversationPreviewUpdated", {
+          detail: { conversation_id: dispatchedConvId, preview: prompt },
+        })
+      );
+    } catch (e) {
+      // ignore parsing error; this is best-effort
+    }
     // After the stream is complete, process markdown and code blocks
     if (genieMessageElements) {
-      const contentContainer = genieMessageElements.textDiv.querySelector(".content-wrapper");
+      const contentContainer =
+        genieMessageElements.textDiv.querySelector(".content-wrapper");
       if (contentContainer) {
-        contentContainer.innerHTML = markdownService.processFullMarkdown(fullResponse);
+        contentContainer.innerHTML =
+          markdownService.processFullMarkdown(fullResponse);
         wrapCodeBlocks(contentContainer, elements);
       }
     }
-
   } catch (error) {
     console.error("Streaming fetch error:", error);
-    handleError(elements, { status: "error", message: `Network error: ${error.message}` });
+    handleError(elements, {
+      status: "error",
+      message: `Network error: ${error.message}`,
+    });
   }
 }
-
