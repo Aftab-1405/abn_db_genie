@@ -14,16 +14,35 @@
   <link rel="shortcut icon" href="/static/images/Brand Product.png">
 
   <!-- Optimized theme initialization - prevents FOUC -->
+  <!-- Prevent transition animations while theme is being applied to avoid flicker -->
+  <style>
+    /* Temporarily disable transitions during initial theme application */
+    .no-theme-transition *, .no-theme-transition {
+      transition: none !important;
+      animation: none !important;
+    }
+  </style>
   <script>
     (function () {
-      const theme = localStorage.getItem('theme') ||
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      // Add a guard class to disable transitions until theme is set.
+      document.documentElement.classList.add('no-theme-transition');
 
+      const saved = localStorage.getItem('theme');
+      const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      const theme = saved || preferred;
+
+      // Apply the theme without causing CSS transitions.
       document.documentElement.classList.toggle('dark', theme === 'dark');
 
-      if (!localStorage.getItem('theme')) {
+      // Persist inferred preference only when user hasn't explicitly chosen.
+      if (!saved) {
         localStorage.setItem('theme', theme);
       }
+
+      // Remove the guard in the next frame so subsequent theme toggles animate normally.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.documentElement.classList.remove('no-theme-transition');
+      }));
     })();
   </script>
 
