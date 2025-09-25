@@ -113,7 +113,10 @@ class MarkdownService {
       try {
         JSON.parse(trimmed);
         return "json";
-      } catch (e) {}
+      } catch (e) {
+        // Not valid JSON — continue language detection
+        console.debug?.("JSON parse failed in _detectLanguage:", e);
+      }
     }
 
     // Python detection
@@ -164,7 +167,6 @@ class MarkdownService {
   }
 
   _isMermaidContent(code) {
-    const trimmed = code.trim().toLowerCase();
     const mermaidKeywords = [
       "graph",
       "sequencediagram",
@@ -216,6 +218,8 @@ class MarkdownService {
       this.partialCache.set(cacheKey, safeHtml);
       return safeHtml;
     } catch (e) {
+      // Log parse errors for debugging, then fallback to safe escape
+      console.debug?.("Partial markdown parse failed:", e);
       // Fallback: escape the text
       const escaped = partialContent
         .replace(/&/g, "&amp;")

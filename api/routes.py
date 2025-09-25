@@ -105,64 +105,87 @@ def connect_db():
     db_name = data.get('db_name')
     conversation_id = session.get('conversation_id')
 
-    # Case 1: Initial server connection (host, port, user, password)
+    # If all connection fields present -> treat as server connection request
     if all([host, port, user, password]):
-        from database import connection as db_connection
-        db_connection.db_config.update({
-            'host': host,
-            'port': int(port),
-            'user': user,
-            'password': password
-        })
-        # Reset pool and thread-local connection
-        with db_connection._pool_lock:
-            if db_connection._connection_pool:
-                try:
-                    db_connection._connection_pool._remove_connections()
-                except:
-                    pass
-            db_connection._connection_pool = None
-        if hasattr(db_connection.thread_local, 'connection'):
-            try:
-                db_connection.thread_local.connection.close()
-            except:
-                pass
-            delattr(db_connection.thread_local, 'connection')
-        # Test connection and fetch schemas
-        try:
-            conn = db_connection.get_db_connection()
-            if conn.is_connected():
-                from database.operations import get_databases
-                dbs_result = get_databases()
-                if dbs_result.get('status') == 'success':
-                    return jsonify({'status': 'connected', 'message': f'Connected to database server at {host}:{port}', 'schemas': dbs_result['databases']})
-                else:
-                    return jsonify({'status': 'connected', 'message': f'Connected, but failed to fetch schemas', 'schemas': []})
-            else:
-                return jsonify({'status': 'error', 'message': 'Failed to connect to the database server.'})
-        except Exception as err:
-            return jsonify({'status': 'error', 'message': str(err)})
+        return _handle_server_connection(host, port, user, password)
 
-    # Case 2: Database selection (db_name only)
-    elif db_name:
-        from database.connection import update_db_config, get_current_db_name
-        from database.operations import fetch_database_info
-        from services.gemini_service import GeminiService
-        update_db_config(db_name)
-        try:
-            db_info, detailed_info = fetch_database_info(db_name)
-            conversation_id = session.get('conversation_id')
-            if db_info and db_info.strip():
-                GeminiService.notify_gemini(conversation_id, db_info)
-            if detailed_info and detailed_info.strip():
-                GeminiService.notify_gemini(conversation_id, detailed_info)
-            return jsonify({'status': 'connected', 'message': f'Connected to database {db_name}'})
-        except Exception as err:
-            return jsonify({'status': 'error', 'message': str(err)})
+    # If only db_name present -> treat as selecting a database on the server
+    if db_name:
+        return _handle_db_selection(db_name, conversation_id)
 
     # Invalid request
-    else:
-        return jsonify({'status': 'error', 'message': 'All fields are required for server connection, or db_name for database selection.'})
+    return jsonify({'status': 'error', 'message': 'All fields are required for server connection, or db_name for database selection.'})
+
+
+def _reset_db_connection_pool(db_connection):
+    """Reset the module-level connection pool and any thread-local connection."""
+    # Reset pool and thread-local connection
+    with db_connection._pool_lock:
+        if db_connection._connection_pool:
+            try:
+                db_connection._connection_pool._remove_connections()
+            except Exception as e:
+                logger.debug('Failed to remove connections from pool: %s', e)
+        db_connection._connection_pool = None
+
+    if hasattr(db_connection.thread_local, 'connection'):
+        try:
+            db_connection.thread_local.connection.close()
+        except Exception as e:
+            logger.debug('Failed to close thread-local connection: %s', e)
+        try:
+            delattr(db_connection.thread_local, 'connection')
+        except Exception:
+            # ignore if attribute already removed
+            pass
+
+
+def _handle_server_connection(host, port, user, password):
+    """Apply new server config, reset state, test connection and return schemas."""
+    from database import connection as db_connection
+    # Update config
+    db_connection.db_config.update({
+        'host': host,
+        'port': int(port),
+        'user': user,
+        'password': password
+    })
+
+    _reset_db_connection_pool(db_connection)
+
+    # Test connection and fetch schemas
+    try:
+        conn = db_connection.get_db_connection()
+        if conn.is_connected():
+            from database.operations import get_databases as _get_databases
+            dbs_result = _get_databases()
+            if dbs_result.get('status') == 'success':
+                return jsonify({'status': 'connected', 'message': 'Connected to database server at {host}:{port}'.format(host=host, port=port), 'schemas': dbs_result['databases']})
+            return jsonify({'status': 'connected', 'message': 'Connected, but failed to fetch schemas', 'schemas': []})
+        return jsonify({'status': 'error', 'message': 'Failed to connect to the database server.'})
+    except Exception as err:
+        logger.exception('Error while testing DB connection')
+        return jsonify({'status': 'error', 'message': str(err)})
+
+
+def _handle_db_selection(db_name, conversation_id=None):
+    """Select a database, fetch its info, and notify Gemini services."""
+    from database.connection import update_db_config
+    from database.operations import fetch_database_info
+    from services.gemini_service import GeminiService
+
+    update_db_config(db_name)
+    try:
+        db_info, detailed_info = fetch_database_info(db_name)
+        conversation_id = session.get('conversation_id', conversation_id)
+        if db_info and db_info.strip():
+            GeminiService.notify_gemini(conversation_id, db_info)
+        if detailed_info and detailed_info.strip():
+            GeminiService.notify_gemini(conversation_id, detailed_info)
+        return jsonify({'status': 'connected', 'message': 'Connected to database {db}'.format(db=db_name)})
+    except Exception as err:
+        logger.exception('Error while selecting database %s', db_name)
+        return jsonify({'status': 'error', 'message': str(err)})
 
 @api_bp.route('/run_sql_query', methods=['POST'])
 def run_sql_query():

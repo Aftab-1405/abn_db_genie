@@ -12,6 +12,11 @@ import threading
 
 logger = logging.getLogger(__name__)
 
+
+class DatabaseOperationError(Exception):
+    """Specific exception type for database operation failures."""
+    pass
+
 class DatabaseOperations:
     """Optimized secure database operations class - READ-ONLY VERSION"""
     
@@ -75,7 +80,7 @@ class DatabaseOperations:
             raise err
         except mysql.connector.Error as err:
             logger.error(f"Database error in get_tables: {err}")
-            raise Exception("Failed to retrieve tables")
+            raise DatabaseOperationError("Failed to retrieve tables")
     
     @staticmethod
     def get_table_schema(table_name: str, db_name: str) -> List[Dict]:
@@ -115,7 +120,7 @@ class DatabaseOperations:
             raise err
         except mysql.connector.Error as err:
             logger.error(f"Database error in get_table_schema: {err}")
-            raise Exception("Failed to retrieve table schema")
+            raise DatabaseOperationError("Failed to retrieve table schema")
     
     @staticmethod
     def get_table_row_count(table_name: str, db_name: str) -> int:
@@ -139,7 +144,7 @@ class DatabaseOperations:
             raise err
         except mysql.connector.Error as err:
             logger.error(f"Database error in get_table_row_count: {err}")
-            raise Exception("Failed to retrieve row count")
+            raise DatabaseOperationError("Failed to retrieve row count")
     
     @staticmethod
     def clear_cache():

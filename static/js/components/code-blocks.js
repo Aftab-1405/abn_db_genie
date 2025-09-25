@@ -54,7 +54,8 @@ function applySyntaxHighlighting(codeElement, language) {
     // Add hljs class for proper styling
     codeElement.classList.add("hljs");
   } catch (e) {
-    console.warn("Syntax highlighting error:", e);
+    // Log the error for diagnostics and keep original text if highlighting fails
+    console.error("Syntax highlighting error:", e);
     // Keep original text if highlighting fails
     codeElement.classList.add("hljs");
   }
@@ -116,6 +117,8 @@ function createCopyButton(codeText) {
       `;
       showNotification("Code copied to clipboard", "success");
     } catch (err) {
+      // Log the error and notify the user
+      console.error("Failed to copy code to clipboard", err);
       showNotification("Failed to copy code", "error");
     }
 

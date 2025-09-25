@@ -1,4 +1,4 @@
-<!-- Fixed Query Result Modal -->
+<!-- Fixed Query Result Modal with dynamic header support -->
 <div id="query-result-modal"
     class="hidden fixed inset-0 z-40 items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
     <div
@@ -13,7 +13,6 @@
                 <span class="app-text font-bold text-base gradient-text">DB-Genie</span>
             </div>
             <div class="flex gap-2">
-                <!-- Export removed per request. Close as icon-only button for compact header -->
                 <button id="query-result-modal-close-button" type="button"
                     class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full text-current hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-red-500 has-tooltip"
                     aria-label="Close results" data-tooltip="Close" onclick="hideModal()">
@@ -30,13 +29,18 @@
                 <table id="query-result"
                     class="query-result-table w-full border-collapse min-w-full app-surface rounded-lg overflow-hidden shadow-depth-2">
                     <thead class="app-surface-secondary">
+                        <tr id="query-result-headers">
+                            <!-- Headers will be populated dynamically by JavaScript -->
+                            <th scope="col"
+                                class="px-4 py-2 text-left text-xs font-medium app-text uppercase tracking-wider">
+                                Results Loading...
+                            </th>
+                        </tr>
                     </thead>
                     <tbody class="app-border divide-y app-surface">
                     </tbody>
                 </table>
             </div>
-
-            <!-- visualization handled on dedicated visualize.html -->
         </div>
 
         <div
@@ -50,11 +54,9 @@
                 <strong>Note:</strong> DB-Genie's results may be incorrect. Always verify with your database.
             </p>
             <div id="show-viz-container">
-                <!-- Icon-only visualize button for a compact footer -->
                 <button id="show-viz-btn" type="button"
                     class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-300 has-tooltip"
                     aria-label="Visualize results" data-tooltip="Visualize">
-                    <!-- Outline bar chart icon (stroke-based) -->
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="11" width="4" height="9" rx="1"></rect>

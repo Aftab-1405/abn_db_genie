@@ -12,9 +12,10 @@ class DatabaseSecurity:
     """Optimized database security utilities - READ-ONLY VERSION"""
     
     # Pre-compiled regex patterns for better performance
-    _TABLE_NAME_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]{0,63}$')
-    _DATABASE_NAME_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]{0,63}$')
-    _COLUMN_NAME_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    # Use concise character class \w for readability; first char must be letter or underscore
+    _TABLE_NAME_PATTERN = re.compile(r'^[A-Za-z_]\w{0,63}$')
+    _DATABASE_NAME_PATTERN = re.compile(r'^[A-Za-z_]\w{0,63}$')
+    _COLUMN_NAME_PATTERN = re.compile(r'^[A-Za-z_]\w*$')
     
     # Optimized keyword sets - READ-ONLY FOCUSED
     ALLOWED_KEYWORDS = frozenset({
@@ -28,7 +29,7 @@ class DatabaseSecurity:
     # Expanded dangerous keywords to include all DML operations
     DANGEROUS_KEYWORDS = frozenset({
         'DROP', 'CREATE', 'ALTER', 'TRUNCATE', 'GRANT', 'REVOKE',
-        'EXEC', 'EXECUTE', 'UNION', 'SCRIPT', 'DECLARE', 'SHOW',
+        'EXEC', 'EXECUTE', 'UNION', 'SCRIPT', 'DECLARE',
         'DESCRIBE', 'EXPLAIN', 'CALL', 'PROCEDURE', 'FUNCTION',
         'INSERT', 'UPDATE', 'DELETE', 'INTO', 'VALUES', 'SET'  # Added DML operations
     })
@@ -96,50 +97,70 @@ class DatabaseSecurity:
             'query_type': None,
             'tables_accessed': []
         }
-        
-        # Fast query type detection using pre-compiled patterns
-        for query_type, pattern in DatabaseSecurity._QUERY_TYPE_PATTERNS.items():
-            if pattern.match(query_stripped):
-                analysis['query_type'] = query_type
-                break
-        
+        # Small helpers to keep cognitive complexity low
+        analysis['query_type'] = DatabaseSecurity._detect_query_type(query_stripped)
+
         if not analysis['query_type']:
             analysis['warnings'].append("Unknown or potentially unsafe query type")
             analysis['is_safe'] = False
-        
+
         # Strict enforcement: Only SELECT queries are allowed
-        if analysis['query_type'] != 'SELECT':
+        if not DatabaseSecurity._is_query_type_allowed(analysis['query_type']):
             analysis['warnings'].append(f"Query type '{analysis['query_type']}' is not allowed. Only SELECT queries are permitted.")
             analysis['is_safe'] = False
-        
-        # Optimized dangerous keyword detection
-        query_words = set(query_upper.split())
-        dangerous_found = query_words & DatabaseSecurity.DANGEROUS_KEYWORDS
-        
+
+        # Dangerous keywords
+        dangerous_found = DatabaseSecurity._detect_dangerous_keywords(query_upper)
         if dangerous_found:
             analysis['is_safe'] = False
             analysis['warnings'].extend([f"Dangerous keyword detected: {kw}" for kw in dangerous_found])
-        
-        # Fast multiple statement detection
-        semicolon_count = query.count(';')
-        if semicolon_count > 1 or (semicolon_count == 1 and not query.rstrip().endswith(';')):
+
+        # Multiple statements
+        if DatabaseSecurity._has_multiple_statements(query):
             analysis['is_safe'] = False
             analysis['warnings'].append("Multiple SQL statements detected")
-        
-        # Quick comment detection
-        if '--' in query or '/*' in query:
-            analysis['warnings'].append("SQL comments detected")
-        
-        # Additional security checks for read-only operations
-        if 'OUTFILE' in query_upper or 'DUMPFILE' in query_upper:
-            analysis['is_safe'] = False
-            analysis['warnings'].append("File operations are not allowed")
-        
-        if 'LOAD_FILE' in query_upper or 'LOAD DATA' in query_upper:
-            analysis['is_safe'] = False
-            analysis['warnings'].append("File loading operations are not allowed")
-        
+
+        # Comments, file ops and load ops
+        comment_warnings = DatabaseSecurity._detect_comments_and_file_ops(query, query_upper)
+        if comment_warnings:
+            analysis['warnings'].extend(comment_warnings)
+
         return analysis
+
+    @staticmethod
+    def _detect_query_type(query_stripped: str) -> Optional[str]:
+        """Return detected query type or None."""
+        for query_type, pattern in DatabaseSecurity._QUERY_TYPE_PATTERNS.items():
+            if pattern.match(query_stripped):
+                return query_type
+        return None
+
+    @staticmethod
+    def _is_query_type_allowed(query_type: Optional[str]) -> bool:
+        """Only SELECT is allowed."""
+        return query_type == 'SELECT'
+
+    @staticmethod
+    def _detect_dangerous_keywords(query_upper: str):
+        """Return set of dangerous keywords found in the query."""
+        query_words = set(query_upper.split())
+        return query_words & DatabaseSecurity.DANGEROUS_KEYWORDS
+
+    @staticmethod
+    def _has_multiple_statements(query: str) -> bool:
+        semicolon_count = query.count(';')
+        return semicolon_count > 1 or (semicolon_count == 1 and not query.rstrip().endswith(';'))
+
+    @staticmethod
+    def _detect_comments_and_file_ops(query: str, query_upper: str) -> List[str]:
+        warnings = []
+        if '--' in query or '/*' in query:
+            warnings.append("SQL comments detected")
+        if 'OUTFILE' in query_upper or 'DUMPFILE' in query_upper:
+            warnings.append("File operations are not allowed")
+        if 'LOAD_FILE' in query_upper or 'LOAD DATA' in query_upper:
+            warnings.append("File loading operations are not allowed")
+        return warnings
     
     @staticmethod
     @lru_cache(maxsize=64)

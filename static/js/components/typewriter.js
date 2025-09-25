@@ -9,7 +9,6 @@ import { markdownService } from "../services/markdown-service.js";
 // ============================
 // Constants
 // ============================
-const ANIMATION_DURATION = 2000; // Duration for the reveal animation
 const WORD_DELAY = 100; // Delay between word reveals in ms
 const LINE_DELAY = 200; // Delay between line reveals in ms
 
@@ -110,12 +109,21 @@ function createCodeRevealAnimation(element, callback) {
 
   // Call callback after all animations
   const totalDuration = delay + 1000;
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     cleanup(element);
     callback?.();
   }, totalDuration);
 
-  return () => cleanup(element);
+  return () => {
+    // Cancel any running Web Animations to avoid leaks (guard before calling)
+    animations.forEach((anim) => {
+      if (anim && typeof anim.cancel === "function") {
+        anim.cancel();
+      }
+    });
+    clearTimeout(timeoutId);
+    cleanup(element);
+  };
 }
 
 /**
@@ -152,13 +160,16 @@ function createListAnimation(element, callback) {
   });
 
   const totalDuration = listItems.length * LINE_DELAY + 400;
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     cleanup(element);
     callback?.();
   }, totalDuration);
 
   return () => {
-    animations.forEach((anim) => anim.cancel());
+    animations.forEach((anim) => {
+      if (anim && typeof anim.cancel === "function") anim.cancel();
+    });
+    clearTimeout(timeoutId);
     cleanup(element);
   };
 }
@@ -176,7 +187,6 @@ function createParagraphAnimation(element, callback) {
 
   paragraphs.forEach((paragraph, pIndex) => {
     const words = paragraph.textContent.split(" ");
-    const wordElements = [];
 
     // Split into word spans
     paragraph.innerHTML = words
@@ -214,7 +224,10 @@ function createParagraphAnimation(element, callback) {
   }, totalDelay + 300);
 
   return () => {
-    animations.forEach((anim) => anim.cancel());
+    animations.forEach((anim) => {
+      if (anim && typeof anim.cancel === "function") anim.cancel();
+    });
+    // No long-running timeout here to clear (handled above)
     cleanup(element);
   };
 }
@@ -245,13 +258,16 @@ function createDefaultAnimation(element, callback) {
   });
 
   const totalDuration = blocks.length * 150 + 500;
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     cleanup(element);
     callback?.();
   }, totalDuration);
 
   return () => {
-    animations.forEach((anim) => anim.cancel());
+    animations.forEach((anim) => {
+      if (anim && typeof anim.cancel === "function") anim.cancel();
+    });
+    clearTimeout(timeoutId);
     cleanup(element);
   };
 }
@@ -268,9 +284,10 @@ function getTextNodes(element) {
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
     acceptNode: function (node) {
       // Skip code blocks and empty text
+      const parentTag = node.parentElement?.tagName;
       if (
-        node.parentElement.tagName === "CODE" ||
-        node.parentElement.tagName === "PRE" ||
+        parentTag === "CODE" ||
+        parentTag === "PRE" ||
         !node.textContent.trim()
       ) {
         return NodeFilter.FILTER_REJECT;
@@ -293,7 +310,9 @@ function getTextNodes(element) {
 function wrapTextNode(textNode) {
   const span = document.createElement("span");
   span.textContent = textNode.textContent;
-  textNode.parentNode.replaceChild(span, textNode);
+  if (textNode.parentNode) {
+    textNode.parentNode.replaceChild(span, textNode);
+  }
   return span;
 }
 

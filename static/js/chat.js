@@ -69,7 +69,8 @@ export async function sendUserInput(elements) {
         sessionStorage.setItem("conversation_id", returnedConvId);
       }
     } catch (e) {
-      // ignore
+      // Log for debugging but don't break the flow
+      console.debug?.("Failed to read X-Conversation-Id header:", e);
     }
 
     const reader = resp.body.getReader();

@@ -63,9 +63,14 @@ def get_db_connection():
             # Test connection validity
             if thread_local.connection.is_connected():
                 return thread_local.connection
-        except:
-            # Connection is stale, remove it
-            delattr(thread_local, 'connection')
+        except Exception as e:
+            # Connection is stale or check failed, remove it and log debug info
+            logger.debug('Thread-local connection validity check failed: %s', e)
+            try:
+                delattr(thread_local, 'connection')
+            except Exception:
+                # ignore if attr removal fails
+                pass
     
     # Get new connection from pool
     try:
@@ -108,17 +113,21 @@ def update_db_config(database_name):
             try:
                 # Close existing pool connections
                 _connection_pool._remove_connections()
-            except:
-                pass
+            except Exception as e:
+                logger.debug('Failed to remove connections from existing pool: %s', e)
         _connection_pool = None
     
     # Clear thread-local connections
     if hasattr(thread_local, 'connection'):
         try:
             thread_local.connection.close()
-        except:
+        except Exception as e:
+            logger.debug('Failed to close thread-local connection during config update: %s', e)
+        try:
+            delattr(thread_local, 'connection')
+        except Exception:
+            # ignore if attribute already removed
             pass
-        delattr(thread_local, 'connection')
 
 def get_current_db_name():
     """Get currently selected database name"""
@@ -132,17 +141,21 @@ def close_all_connections():
     if hasattr(thread_local, 'connection'):
         try:
             thread_local.connection.close()
-        except:
+        except Exception as e:
+            logger.debug('Failed to close thread-local connection during shutdown: %s', e)
+        try:
+            delattr(thread_local, 'connection')
+        except Exception:
+            # ignore if attribute already removed
             pass
-        delattr(thread_local, 'connection')
     
     # Close pool connections
     with _pool_lock:
         if _connection_pool:
             try:
                 _connection_pool._remove_connections()
-            except:
-                pass
+            except Exception as e:
+                logger.debug('Failed to remove connections from pool during shutdown: %s', e)
             _connection_pool = None
     
     # Shutdown executor

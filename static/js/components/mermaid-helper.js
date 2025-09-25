@@ -48,7 +48,8 @@ function initializeMermaid(callback) {
 
 export function renderMermaid(container, code, onSuccess, onError) {
   loadMermaid(() => {
-    const id = "mermaid-" + Math.random().toString(36).substr(2, 9);
+    // Use slice instead of deprecated substr(start, length)
+    const id = "mermaid-" + Math.random().toString(36).slice(2, 11);
     const div = document.createElement("div");
     div.className = "mermaid";
     div.id = id;

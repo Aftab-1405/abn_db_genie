@@ -16,7 +16,8 @@ const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
     const data = await resp.json();
     if (data.status === "success") return data;
     throw new Error(`Unexpected response: ${data.status}`);
-  } catch {
+  } catch (error) {
+    console.error("API Error:", error);
     showNotification(elements, errorMessage, "error");
     return null;
   }
@@ -45,7 +46,11 @@ const ThemeManager = {
       html.classList.remove("dark");
     }
 
-    localStorage.setItem("theme", theme);
+    try {
+      localStorage.setItem("theme", theme);
+    } catch (error) {
+      console.warn("Failed to save theme to localStorage:", error);
+    }
 
     // Allow other components to react immediately without triggering heavy transitions.
     window.dispatchEvent(
@@ -75,7 +80,13 @@ const ThemeManager = {
     const alreadyHasThemeClass =
       document.documentElement.classList.contains("dark") ||
       document.documentElement.classList.contains("no-theme-transition");
-    const savedTheme = localStorage.getItem("theme");
+
+    let savedTheme = null;
+    try {
+      savedTheme = localStorage.getItem("theme");
+    } catch (error) {
+      console.warn("Failed to read theme from localStorage:", error);
+    }
 
     if (alreadyHasThemeClass && savedTheme) {
       // Theme already applied by server-side/inline script, only dispatch event to sync components.
@@ -97,11 +108,36 @@ const ThemeManager = {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     mediaQuery.addEventListener("change", (e) => {
       // Only auto-switch if user hasn't manually set a preference
-      if (!localStorage.getItem("theme")) {
+      let hasManualPreference = false;
+      try {
+        hasManualPreference = Boolean(localStorage.getItem("theme"));
+      } catch (error) {
+        console.warn(
+          "Failed to check localStorage for theme preference:",
+          error
+        );
+      }
+
+      if (!hasManualPreference) {
         this.setTheme(e.matches ? "dark" : "light");
       }
     });
   },
+};
+
+// Helper function to schedule conversations load
+const scheduleConversationsLoad = (elements) => {
+  const loadConversations = () => {
+    fetchAndDisplayConversations(elements).catch((error) => {
+      console.warn("Failed to load conversations on initialization:", error);
+    });
+  };
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(loadConversations, { timeout: 500 });
+  } else {
+    requestAnimationFrame(() => setTimeout(loadConversations, 60));
+  }
 };
 
 // Initialize the application and load conversations automatically
@@ -113,31 +149,8 @@ export async function initializeApp(elements) {
   ThemeManager.watchSystemTheme();
 
   // Defer loading conversations slightly so the browser can paint the chat
-  // container and logo first. Use requestIdleCallback when available, else
-  // fallback to requestAnimationFrame + setTimeout to run after first paint.
-  const scheduleConversationsLoad = () => {
-    if (window.requestIdleCallback) {
-      requestIdleCallback(
-        async () => {
-          try {
-            await fetchAndDisplayConversations(elements);
-          } catch (e) {
-            // swallow — non-critical for first paint
-          }
-        },
-        { timeout: 500 }
-      );
-    } else {
-      requestAnimationFrame(() =>
-        setTimeout(
-          () => fetchAndDisplayConversations(elements).catch(() => {}),
-          60
-        )
-      );
-    }
-  };
-
-  scheduleConversationsLoad();
+  // container and logo first.
+  scheduleConversationsLoad(elements);
 
   // Clear any lingering conversation id from previous sessions so that
   // typing immediately after load (without clicking New Chat) creates a new
@@ -145,68 +158,60 @@ export async function initializeApp(elements) {
   // via the UI, loadConversation sets the conversation id.
   try {
     sessionStorage.removeItem("conversation_id");
-  } catch (e) {
-    // ignore (e.g., if sessionStorage not available)
+  } catch (error) {
+    console.warn("Failed to clear conversation_id from sessionStorage:", error);
   }
 }
 
-// Bind all UI interactions and app events
-export function initializeEventBindings(elements) {
-  elements.html = document.documentElement;
+// Helper function to handle theme toggle change
+const handleThemeToggleChange = (elements) => {
+  const newTheme = ThemeManager.toggleTheme();
+  const isDark = newTheme === "dark";
 
-  // Enhanced theme toggle with better UX
-  elements.themeToggle.addEventListener("change", () => {
-    const newTheme = ThemeManager.toggleTheme();
-    const isDark = newTheme === "dark";
+  // Update SQL editor theme if it exists
+  elements.sqlEditor?.setOption?.("theme", isDark ? "dracula" : "default");
 
-    // Update SQL editor theme if it exists
-    if (elements.sqlEditor) {
-      elements.sqlEditor.setOption("theme", isDark ? "dracula" : "default");
-    }
-
-    // Update toggle state to match current theme
-    elements.themeToggle.checked = isDark;
-  });
-
-  // Listen for theme changes from other sources
-  window.addEventListener("themeChanged", (e) => {
-    const isDark = e.detail.theme === "dark";
-
-    // Update toggle state
-    if (elements.themeToggle) {
-      elements.themeToggle.checked = isDark;
-    }
-
-    // Update SQL editor theme
-    if (elements.sqlEditor) {
-      elements.sqlEditor.setOption("theme", isDark ? "dracula" : "default");
-    }
-  });
-
-  // Update sidebar previews in real-time when a new prompt is sent
-  window.addEventListener("conversationPreviewUpdated", (e) => {
-    const detail = e.detail || {};
-    const conversationId = detail.conversation_id;
-    const preview = detail.preview;
-    if (conversationId) {
-      upsertConversationPreview(elements, conversationId, preview);
-    }
-  });
-
-  // Initialize theme toggle state on page load
+  // Update toggle state to match current theme
   if (elements.themeToggle) {
-    elements.themeToggle.checked = ThemeManager.getCurrentTheme() === "dark";
+    elements.themeToggle.checked = isDark;
+  }
+};
+
+// Helper function to handle theme changes from other sources
+const handleThemeChanged = (elements, event) => {
+  const isDark = event.detail.theme === "dark";
+
+  // Update toggle state
+  if (elements.themeToggle) {
+    elements.themeToggle.checked = isDark;
   }
 
-  // Toggle sidebar (mobile)
+  // Update SQL editor theme
+  elements.sqlEditor?.setOption?.("theme", isDark ? "dracula" : "default");
+};
+
+// Helper function to handle conversation preview updates
+const handleConversationPreviewUpdate = (elements, event) => {
+  const detail = event.detail || {};
+  const conversationId = detail.conversation_id;
+  const preview = detail.preview;
+  if (conversationId) {
+    upsertConversationPreview(elements, conversationId, preview);
+  }
+};
+
+// Helper function to setup sidebar toggle functionality
+const setupSidebarToggle = (elements) => {
   const SIDEBAR_HIDDEN_CLASS = "-translate-x-full";
   const SIDEBAR_VISIBLE_CLASS = "md:ml-64";
+
   const toggleSidebar = () => {
     elements.sidebar.classList.toggle(SIDEBAR_HIDDEN_CLASS);
     elements.mainContent.classList.toggle(SIDEBAR_VISIBLE_CLASS);
   };
+
   [elements.toggleButton, elements.sidebarCloseButton].forEach((btn) => {
-    if (btn) btn.addEventListener("click", toggleSidebar);
+    btn?.addEventListener("click", toggleSidebar);
   });
 
   // Sync sidebar visibility with screen size
@@ -219,21 +224,80 @@ export function initializeEventBindings(elements) {
       elements.mainContent.classList.remove(SIDEBAR_VISIBLE_CLASS);
     }
   };
+
   elements.mediaQuery.addEventListener("change", handleMediaChange);
   handleMediaChange(elements.mediaQuery);
+};
 
-  // Track if server connection is established
+// Helper function to handle database connection form submission
+const handleDbConnectionForm = async (elements, formData) => {
+  const { host, port, user, password } = formData;
+
+  try {
+    const resp = await fetch("/connect_db", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ host, port, user, password }),
+    });
+
+    const data = await resp.json();
+
+    if (data.status === "connected") {
+      showNotification(
+        elements,
+        `Connected to database at ${host}:${port}`,
+        "success"
+      );
+
+      // Populate schemas dropdown
+      populateSchemas(elements, data.schemas);
+      return true;
+    } else {
+      showNotification(
+        elements,
+        data.message || "Failed to connect to the database",
+        "error"
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error("Database connection error:", error);
+    showNotification(elements, "Connection error occurred", "error");
+    return false;
+  }
+};
+
+// Helper function to populate schemas dropdown
+const populateSchemas = (elements, schemas) => {
+  const dropdown = elements.databasesDropdown;
+  dropdown.innerHTML = "";
+
+  if (Array.isArray(schemas)) {
+    schemas.forEach((db) => {
+      const opt = document.createElement("option");
+      opt.value = db;
+      opt.textContent = db;
+      dropdown.appendChild(opt);
+    });
+  }
+};
+
+// Helper function to setup database connection modal
+const setupDbConnectionModal = (elements) => {
+  const dbModal = document.getElementById("db-connection-modal");
+  const dbForm = document.getElementById("db-connection-form");
+  const dbCancel = document.getElementById("db-connection-cancel");
+
+  if (!dbModal || !dbForm || !dbCancel) return;
+
   let serverConnected = false;
 
   // Connect to selected database or open modal for credentials
   elements.connectDbButton.addEventListener("click", () => {
-    const modal = document.getElementById("db-connection-modal");
     // If not connected to server, open modal for credentials
     if (!serverConnected || elements.databasesDropdown.options.length === 0) {
-      if (modal) {
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-      }
+      dbModal.classList.remove("hidden");
+      dbModal.classList.add("flex");
     } else {
       // If already connected, connect to selected database
       const dbName = elements.databasesDropdown.value;
@@ -246,100 +310,52 @@ export function initializeEventBindings(elements) {
     }
   });
 
-  // Handle DB Connection Modal actions
-  const dbModal = document.getElementById("db-connection-modal");
-  const dbForm = document.getElementById("db-connection-form");
-  const dbCancel = document.getElementById("db-connection-cancel");
-  if (dbModal && dbForm && dbCancel) {
-    dbCancel.addEventListener("click", () => {
+  dbCancel.addEventListener("click", () => {
+    dbModal.classList.add("hidden");
+    dbModal.classList.remove("flex");
+    dbForm.reset();
+  });
+
+  dbForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = {
+      host: dbForm["host"].value,
+      port: dbForm["port"].value,
+      user: dbForm["user"].value,
+      password: dbForm["password"].value,
+    };
+
+    const success = await handleDbConnectionForm(elements, formData);
+
+    if (success) {
+      serverConnected = true;
       dbModal.classList.add("hidden");
       dbModal.classList.remove("flex");
       dbForm.reset();
-    });
-    dbForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const host = dbForm["host"].value;
-      const port = dbForm["port"].value;
-      const user = dbForm["user"].value;
-      const password = dbForm["password"].value;
-      // Call backend API to connect and fetch schemas
-      const resp = await fetch("/connect_db", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ host, port, user, password }),
-      });
-      const data = await resp.json();
-      if (data.status === "connected") {
-        showNotification(
-          elements,
-          `Connected to database at ${host}:${port}`,
-          "success"
-        );
-        // Populate schemas dropdown
-        const dropdown = elements.databasesDropdown;
-        dropdown.innerHTML = "";
-        if (Array.isArray(data.schemas)) {
-          data.schemas.forEach((db) => {
-            const opt = document.createElement("option");
-            opt.value = db;
-            opt.textContent = db;
-            dropdown.appendChild(opt);
-          });
-        }
-        serverConnected = true;
-        dbModal.classList.add("hidden");
-        dbModal.classList.remove("flex");
-        dbForm.reset();
-      } else {
-        showNotification(
-          elements,
-          data.message || "Failed to connect to the database",
-          "error"
-        );
-      }
-    });
-  }
-
-  // Start a new conversation
-  elements.newConversationBtn.addEventListener("click", async () => {
-    const data = await handleApiResponse(
-      fetch("/new_conversation", { method: "POST" }),
-      "Failed to start new conversation",
-      elements
-    );
-
-    if (data) {
-      sessionStorage.setItem("conversation_id", data.conversation_id);
-      // Clear chat area and restore the centered AI logo (same as initial load)
-      elements.chat.innerHTML = "";
-      if (elements.aiLogoContainer) {
-        elements.aiLogoContainer.style.display = "flex";
-      }
-      showNotification(elements, "New conversation started", "success");
-      // Refresh conversation list to show the new conversation
-      await fetchAndDisplayConversations(elements);
     }
   });
+};
 
-  // Toggle profile dropdown menu
+// Helper function to setup profile menu
+const setupProfileMenu = (elements) => {
   const toggleProfileMenu = () => {
     elements.profileMenu.classList.toggle("invisible");
     elements.profileMenu.classList.toggle("opacity-0");
     elements.profileMenu.classList.toggle("scale-95");
   };
+
   elements.profileBtn.addEventListener("click", toggleProfileMenu);
 
   // Open settings from profile dropdown
   const firstProfileLink = document.querySelector(
     "#profile-menu a:first-child"
   );
-  if (firstProfileLink) {
-    firstProfileLink.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      elements.settingsModal.classList.remove("invisible");
-      elements.profileMenu.classList.add("invisible", "opacity-0", "scale-95");
-    });
-  }
+  firstProfileLink?.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    elements.settingsModal.classList.remove("invisible");
+    elements.profileMenu.classList.add("invisible", "opacity-0", "scale-95");
+  });
 
   // Close settings modal via close button
   elements.settingsModalClose.addEventListener("click", () => {
@@ -362,7 +378,10 @@ export function initializeEventBindings(elements) {
       elements.profileMenu.classList.add("invisible", "opacity-0", "scale-95");
     }
   });
+};
 
+// Helper function to setup input handling
+const setupInputHandling = (elements) => {
   // Auto resize input area
   elements.adjustTextInputHeight = () => {
     const ti = elements.textInput;
@@ -370,40 +389,109 @@ export function initializeEventBindings(elements) {
     ti.style.height = `${ti.scrollHeight}px`;
     ti.style.overflowY = ti.scrollHeight > 192 ? "auto" : "hidden";
   };
-  elements.textInput.addEventListener("input", () => {
-    elements.adjustTextInputHeight();
-  });
+
+  elements.textInput.addEventListener("input", elements.adjustTextInputHeight);
 
   // Handle message submission
   elements.sendIcon.addEventListener("click", () => {
     sendUserInput(elements);
   });
+
   elements.textInput.addEventListener("keypress", (ev) => {
     if (ev.key === "Enter") {
       ev.preventDefault();
       elements.sendIcon.click();
     }
   });
+};
 
-  // Execute SQL query from CodeMirror
+// Helper function to setup SQL query execution
+const setupSqlQueryExecution = (elements) => {
   elements.executeQueryButton.addEventListener("click", async () => {
     const sqlQ = elements.sqlEditor.getValue();
     if (!sqlQ) return;
+
     const orig = elements.executeQueryButton.innerHTML;
     elements.executeQueryButton.disabled = true;
     elements.executeQueryButton.innerHTML = elements.LOADING_SPINNER_HTML;
-    await executeSqlString(elements, sqlQ);
-    elements.executeQueryButton.innerHTML = orig;
-    elements.executeQueryButton.disabled = false;
+
+    try {
+      await executeSqlString(elements, sqlQ);
+    } finally {
+      elements.executeQueryButton.innerHTML = orig;
+      elements.executeQueryButton.disabled = false;
+    }
   });
 
   // Close query result modal
   elements.closeBtn.addEventListener("click", () => {
     elements.queryResultModal.classList.replace("flex", "hidden");
   });
+
   window.addEventListener("click", (ev) => {
     if (ev.target === elements.queryResultModal) {
       elements.queryResultModal.classList.replace("flex", "hidden");
+    }
+  });
+};
+
+// Bind all UI interactions and app events
+export function initializeEventBindings(elements) {
+  elements.html = document.documentElement;
+
+  // Enhanced theme toggle with better UX
+  elements.themeToggle.addEventListener("change", () =>
+    handleThemeToggleChange(elements)
+  );
+
+  // Listen for theme changes from other sources
+  window.addEventListener("themeChanged", (e) =>
+    handleThemeChanged(elements, e)
+  );
+
+  // Update sidebar previews in real-time when a new prompt is sent
+  window.addEventListener("conversationPreviewUpdated", (e) =>
+    handleConversationPreviewUpdate(elements, e)
+  );
+
+  // Initialize theme toggle state on page load
+  if (elements.themeToggle) {
+    elements.themeToggle.checked = ThemeManager.getCurrentTheme() === "dark";
+  }
+
+  // Setup all UI components
+  setupSidebarToggle(elements);
+  setupDbConnectionModal(elements);
+  setupProfileMenu(elements);
+  setupInputHandling(elements);
+  setupSqlQueryExecution(elements);
+
+  // Start a new conversation
+  elements.newConversationBtn.addEventListener("click", async () => {
+    const data = await handleApiResponse(
+      fetch("/new_conversation", { method: "POST" }),
+      "Failed to start new conversation",
+      elements
+    );
+
+    if (data) {
+      try {
+        sessionStorage.setItem("conversation_id", data.conversation_id);
+      } catch (error) {
+        console.warn(
+          "Failed to save conversation_id to sessionStorage:",
+          error
+        );
+      }
+
+      // Clear chat area and restore the centered AI logo (same as initial load)
+      elements.chat.innerHTML = "";
+      if (elements.aiLogoContainer) {
+        elements.aiLogoContainer.style.display = "flex";
+      }
+      showNotification(elements, "New conversation started", "success");
+      // Refresh conversation list to show the new conversation
+      await fetchAndDisplayConversations(elements);
     }
   });
 }
@@ -427,14 +515,131 @@ export async function fetchAndDisplayConversations(elements) {
 
   if (data) {
     populateConversations(elements, data.conversations);
-  } else {
+  } else if (noConversationsMessage) {
     // Handle error state
-    if (noConversationsMessage) {
-      noConversationsMessage.textContent = "Failed to load conversations";
-      noConversationsMessage.style.display = "block";
-    }
+    noConversationsMessage.textContent = "Failed to load conversations";
+    noConversationsMessage.style.display = "block";
   }
 }
+
+// Helper function to create delete button
+const createDeleteButton = () => {
+  const deleteButton = document.createElement("button");
+  deleteButton.className =
+    "delete-conversation-btn opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-all duration-200";
+  deleteButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+    </svg>
+  `;
+  return deleteButton;
+};
+
+// Helper function to handle conversation deletion
+const handleConversationDeletion = async (
+  elements,
+  conversationItem,
+  conversationId
+) => {
+  try {
+    const response = await fetch(`/delete_conversation/${conversationId}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      // Remove conversation item from UI
+      conversationItem.remove();
+      showNotification(
+        elements,
+        "Conversation deleted successfully",
+        "success"
+      );
+
+      handleCurrentConversationDeletion(elements, conversationId);
+      handleEmptyConversationList();
+    } else {
+      showNotification(elements, "Failed to delete conversation", "error");
+    }
+  } catch (error) {
+    console.error("Error deleting conversation:", error);
+    showNotification(elements, "Error deleting conversation", "error");
+  }
+};
+
+// Helper function to handle current conversation deletion
+const handleCurrentConversationDeletion = (elements, deletedConversationId) => {
+  let currentConv = null;
+  try {
+    currentConv = sessionStorage.getItem("conversation_id");
+  } catch (error) {
+    console.warn("Failed to read conversation_id from sessionStorage:", error);
+  }
+
+  if (currentConv && String(currentConv) === String(deletedConversationId)) {
+    try {
+      sessionStorage.removeItem("conversation_id");
+    } catch (error) {
+      console.warn(
+        "Failed to remove conversation_id from sessionStorage:",
+        error
+      );
+    }
+
+    const chatEl = elements?.chat;
+    const logoEl = elements?.aiLogoContainer;
+
+    if (chatEl) {
+      animateChatClear(chatEl, logoEl);
+    } else if (logoEl) {
+      logoEl.style.display = "flex";
+    }
+  }
+};
+
+// Helper function to animate chat clearing
+const animateChatClear = (chatEl, logoEl) => {
+  // If chat is already empty, just ensure logo is visible
+  if (!chatEl.hasChildNodes()) {
+    chatEl.innerHTML = "";
+    logoEl?.style && (logoEl.style.display = "flex");
+    return;
+  }
+
+  // Apply inline transition (no changes to Tailwind files)
+  chatEl.style.transition = "opacity 220ms ease, transform 220ms ease";
+  // Ensure starting state
+  chatEl.style.opacity = chatEl.style.opacity || "1";
+  chatEl.style.transform = chatEl.style.transform || "translateY(0)";
+
+  // Trigger the fade+lift
+  requestAnimationFrame(() => {
+    chatEl.style.opacity = "0";
+    chatEl.style.transform = "translateY(-8px)";
+  });
+
+  // After transition, clear content and reset styles
+  setTimeout(() => {
+    chatEl.innerHTML = "";
+    chatEl.style.transition = "";
+    chatEl.style.opacity = "";
+    chatEl.style.transform = "";
+    logoEl?.style && (logoEl.style.display = "flex");
+  }, 260);
+};
+
+// Helper function to handle empty conversation list
+const handleEmptyConversationList = () => {
+  const conversationListContainer =
+    document.getElementById("conversation-list");
+  if (conversationListContainer?.children.length === 0) {
+    const emptyMessage = document.createElement("div");
+    emptyMessage.id = "no-conversations-message";
+    emptyMessage.className =
+      "text-neutral-500 dark:text-neutral-400 text-center py-8";
+    emptyMessage.textContent = "No conversations yet";
+    conversationListContainer.appendChild(emptyMessage);
+  }
+};
 
 // Create conversation entries for the sidebar
 function populateConversations(elements, conversations) {
@@ -447,7 +652,7 @@ function populateConversations(elements, conversations) {
   // Clear existing content
   conversationListContainer.innerHTML = "";
 
-  if (!conversations || conversations.length === 0) {
+  if (!conversations?.length) {
     // Show no conversations message
     const emptyMessage = document.createElement("div");
     emptyMessage.id = "no-conversations-message";
@@ -466,156 +671,168 @@ function populateConversations(elements, conversations) {
   const frag = document.createDocumentFragment();
 
   conversations.forEach((conv) => {
-    const conversationItem = document.createElement("div");
-    // Attach conversation id so we can update this item later without refetching
-    conversationItem.setAttribute("data-conversation-id", conv.id);
-    conversationItem.className =
-      "conversation-item cursor-pointer block px-4 py-3 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-500 transition-all duration-200 w-full max-w-full";
-
-    // Create a wrapper for flex layout
-    const wrapper = document.createElement("div");
-    wrapper.className = "flex justify-between items-start";
-
-    // Format the date only (no time)
-    const date = new Date(conv.timestamp);
-    const formattedDate = date.toLocaleDateString();
-
-    // Content div
-    const contentDiv = document.createElement("div");
-    contentDiv.className =
-      "flex flex-col gap-1 flex-grow min-w-0 w-full max-w-full";
-    contentDiv.innerHTML = `
-      <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full">
-        ${conv.preview || "New Conversation"}
-      </div>
-      <div class="text-xs text-neutral-500 dark:text-neutral-400">
-        ${formattedDate}
-      </div>
-    `;
-
-    // Delete button
-    const deleteButton = document.createElement("button");
-    deleteButton.className =
-      "delete-conversation-btn opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-all duration-200";
-    deleteButton.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-      </svg>
-    `;
-
-    // Add hover class to parent for delete button visibility
-    conversationItem.classList.add("group");
-
-    // Delete button click handler
-    deleteButton.addEventListener("click", async (ev) => {
-      ev.stopPropagation(); // Prevent conversation from being loaded
-
-      try {
-        const response = await fetch(`/delete_conversation/${conv.id}`, {
-          method: "DELETE",
-        });
-
-        if (response.ok) {
-          // Remove conversation item from UI
-          conversationItem.remove();
-          showNotification(
-            elements,
-            "Conversation deleted successfully",
-            "success"
-          );
-
-          // If the deleted conversation was currently open, animate-hide the chat area,
-          // then clear and restore the centered AI logo (smooth UX).
-          const currentConv = sessionStorage.getItem("conversation_id");
-          if (currentConv && String(currentConv) === String(conv.id)) {
-            sessionStorage.removeItem("conversation_id");
-
-            const chatEl = elements && elements.chat;
-            const logoEl = elements && elements.aiLogoContainer;
-
-            if (chatEl) {
-              // If chat is already empty, just ensure logo is visible
-              if (!chatEl.hasChildNodes()) {
-                chatEl.innerHTML = "";
-                if (logoEl) logoEl.style.display = "flex";
-              } else {
-                // Apply inline transition (no changes to Tailwind files)
-                chatEl.style.transition =
-                  "opacity 220ms ease, transform 220ms ease";
-                // Ensure starting state
-                chatEl.style.opacity = chatEl.style.opacity || "1";
-                chatEl.style.transform =
-                  chatEl.style.transform || "translateY(0)";
-
-                // Trigger the fade+lift
-                requestAnimationFrame(() => {
-                  chatEl.style.opacity = "0";
-                  chatEl.style.transform = "translateY(-8px)";
-                });
-
-                // After transition, clear content and reset styles
-                setTimeout(() => {
-                  chatEl.innerHTML = "";
-                  chatEl.style.transition = "";
-                  chatEl.style.opacity = "";
-                  chatEl.style.transform = "";
-                  if (logoEl) logoEl.style.display = "flex";
-                }, 260);
-              }
-            } else {
-              if (logoEl) logoEl.style.display = "flex";
-            }
-          }
-
-          // If this was the last conversation, show the no conversations message
-          if (conversationListContainer.children.length === 0) {
-            const emptyMessage = document.createElement("div");
-            emptyMessage.id = "no-conversations-message";
-            emptyMessage.className =
-              "text-neutral-500 dark:text-neutral-400 text-center py-8";
-            emptyMessage.textContent = "No conversations yet";
-            conversationListContainer.appendChild(emptyMessage);
-          }
-        } else {
-          showNotification(elements, "Failed to delete conversation", "error");
-        }
-      } catch (error) {
-        showNotification(elements, "Error deleting conversation", "error");
-      }
-    });
-
-    // Add content and delete button to wrapper
-    wrapper.appendChild(contentDiv);
-    wrapper.appendChild(deleteButton);
-    conversationItem.appendChild(wrapper);
-
-    // Conversation click handler
-    contentDiv.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      loadConversation(elements, conv.id);
-
-      // Add visual feedback for selected conversation
-      document.querySelectorAll(".conversation-item").forEach((item) => {
-        item.classList.remove(
-          "bg-blue-50",
-          "dark:bg-blue-900",
-          "border-blue-200",
-          "dark:border-blue-700"
-        );
-      });
-      conversationItem.classList.add(
-        "bg-blue-50",
-        "dark:bg-blue-900",
-        "border-blue-200",
-        "dark:border-blue-700"
-      );
-    });
-
+    const conversationItem = createConversationItem(elements, conv);
     frag.appendChild(conversationItem);
   });
 
   conversationListContainer.appendChild(frag);
 }
+
+// Helper function to create a conversation item
+const createConversationItem = (elements, conv) => {
+  const conversationItem = document.createElement("div");
+  // Attach conversation id so we can update this item later without refetching
+  conversationItem.setAttribute("data-conversation-id", conv.id);
+  conversationItem.className =
+    "conversation-item cursor-pointer block px-4 py-3 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-lg border border-transparent hover:border-neutral-200 dark:hover:border-neutral-500 transition-all duration-200 w-full max-w-full group";
+
+  // Create a wrapper for flex layout
+  const wrapper = document.createElement("div");
+  wrapper.className = "flex justify-between items-start";
+
+  // Format the date only (no time)
+  const date = new Date(conv.timestamp);
+  const formattedDate = date.toLocaleDateString();
+
+  // Content div
+  const contentDiv = document.createElement("div");
+  contentDiv.className =
+    "flex flex-col gap-1 flex-grow min-w-0 w-full max-w-full";
+  contentDiv.innerHTML = `
+    <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full">
+      ${conv.preview || "New Conversation"}
+    </div>
+    <div class="text-xs text-neutral-500 dark:text-neutral-400">
+      ${formattedDate}
+    </div>
+  `;
+
+  // Delete button
+  const deleteButton = createDeleteButton();
+
+  // Delete button click handler
+  deleteButton.addEventListener("click", async (ev) => {
+    ev.stopPropagation(); // Prevent conversation from being loaded
+    await handleConversationDeletion(elements, conversationItem, conv.id);
+  });
+
+  // Add content and delete button to wrapper
+  wrapper.appendChild(contentDiv);
+  wrapper.appendChild(deleteButton);
+  conversationItem.appendChild(wrapper);
+
+  // Conversation click handler
+  contentDiv.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    loadConversation(elements, conv.id);
+    highlightSelectedConversation(conversationItem);
+  });
+
+  return conversationItem;
+};
+
+// Helper function to highlight selected conversation
+const highlightSelectedConversation = (selectedItem) => {
+  document.querySelectorAll(".conversation-item").forEach((item) => {
+    item.classList.remove(
+      "bg-blue-50",
+      "dark:bg-blue-900",
+      "border-blue-200",
+      "dark:border-blue-700"
+    );
+  });
+  selectedItem.classList.add(
+    "bg-blue-50",
+    "dark:bg-blue-900",
+    "border-blue-200",
+    "dark:border-blue-700"
+  );
+};
+
+// Helper function to update conversation preview header
+const updateConversationHeader = (contentDiv, preview) => {
+  const headerEl = contentDiv.querySelector(".font-medium");
+  const headerText = headerEl?.textContent?.trim() || "";
+
+  if (!headerEl || headerText === "" || headerText === "New Conversation") {
+    if (headerEl) {
+      headerEl.textContent = preview || "New Conversation";
+    } else {
+      const h = document.createElement("div");
+      h.className =
+        "font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full";
+      h.textContent = preview || "New Conversation";
+      contentDiv.prepend(h);
+    }
+  }
+};
+
+// Helper function to update conversation date
+const updateConversationDate = (contentDiv, formattedDate) => {
+  const dateEl = contentDiv.querySelector(".text-xs");
+
+  if (dateEl) {
+    dateEl.textContent = formattedDate;
+  } else {
+    const d = document.createElement("div");
+    d.className = "text-xs text-neutral-500 dark:text-neutral-400";
+    d.textContent = formattedDate;
+    contentDiv.appendChild(d);
+  }
+};
+
+// Helper function to animate conversation item
+const animateConversationItem = (item, isNew = false) => {
+  try {
+    if (item.animate) {
+      if (isNew) {
+        // Slide + fade-in for new items
+        item.animate(
+          [
+            { opacity: 0, transform: "translateX(-8px)" },
+            { opacity: 1, transform: "translateX(0)" },
+          ],
+          { duration: 320, easing: "cubic-bezier(0.2, 0, 0, 1)" }
+        );
+      }
+
+      // Subtle highlight (runs in parallel)
+      item.animate(
+        [
+          { backgroundColor: "rgba(250, 204, 21, 0.16)" },
+          { backgroundColor: "transparent" },
+        ],
+        { duration: 420, easing: "ease-out" }
+      );
+    } else {
+      // Fallback: inline transition
+      if (isNew) {
+        item.style.opacity = "0";
+        item.style.transform = "translateX(-8px)";
+        item.style.transition =
+          "opacity 320ms cubic-bezier(0.2,0,0,1), transform 320ms cubic-bezier(0.2,0,0,1)";
+        requestAnimationFrame(() => {
+          item.style.opacity = "1";
+          item.style.transform = "translateX(0)";
+        });
+        setTimeout(() => {
+          item.style.transition = "";
+          item.style.transform = "";
+          item.style.opacity = "";
+        }, 360);
+      }
+
+      item.style.transition = "background-color 420ms ease-out";
+      item.style.backgroundColor = "rgba(250, 204, 21, 0.16)";
+      setTimeout(() => {
+        item.style.backgroundColor = "";
+        item.style.transition = "";
+      }, 440);
+    }
+  } catch (error) {
+    console.warn("Animation failed:", error);
+  }
+};
 
 // Upsert (update or insert) a conversation preview in the sidebar
 function upsertConversationPreview(elements, conversationId, preview) {
@@ -627,9 +844,7 @@ function upsertConversationPreview(elements, conversationId, preview) {
   const placeholder = conversationListContainer.querySelector(
     "#no-conversations-message"
   );
-  if (placeholder) {
-    placeholder.remove();
-  }
+  placeholder?.remove();
 
   // Try to find existing item
   const existing = conversationListContainer.querySelector(
@@ -639,71 +854,61 @@ function upsertConversationPreview(elements, conversationId, preview) {
   const formattedDate = now.toLocaleDateString();
 
   if (existing) {
-    // Preserve the original header (first prompt). Only update or create the single date element.
-    const contentDiv =
-      existing.querySelector(".flex.flex-col") || existing.querySelector("div");
-    if (contentDiv) {
-      const headerEl = contentDiv.querySelector(".font-medium");
-      const dateEl = contentDiv.querySelector(".text-xs");
+    updateExistingConversation(
+      elements,
+      existing,
+      conversationId,
+      preview,
+      formattedDate
+    );
+  } else {
+    createNewConversationPreview(
+      conversationListContainer,
+      conversationId,
+      preview,
+      formattedDate
+    );
+  }
+}
 
-      // Set header only if it's missing or placeholder
-      const headerText =
-        headerEl && headerEl.textContent ? headerEl.textContent.trim() : "";
-      if (!headerEl || headerText === "" || headerText === "New Conversation") {
-        if (headerEl) {
-          headerEl.textContent = preview || "New Conversation";
-        } else {
-          const h = document.createElement("div");
-          h.className =
-            "font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full";
-          h.textContent = preview || "New Conversation";
-          contentDiv.prepend(h);
-        }
-      }
+// Helper function to update existing conversation
+const updateExistingConversation = (
+  elements,
+  existing,
+  conversationId,
+  preview,
+  formattedDate
+) => {
+  const contentDiv =
+    existing.querySelector(".flex.flex-col") || existing.querySelector("div");
+  if (!contentDiv) return;
 
-      // Update or create the single date element
-      if (dateEl) {
-        dateEl.textContent = formattedDate;
-      } else {
-        const d = document.createElement("div");
-        d.className = "text-xs text-neutral-500 dark:text-neutral-400";
-        d.textContent = formattedDate;
-        contentDiv.appendChild(d);
-      }
-    }
-    // If this is the currently open conversation, avoid moving/animating it (prevents blinking);
-    const currentConv = sessionStorage.getItem("conversation_id");
-    if (!currentConv || String(currentConv) !== String(conversationId)) {
-      // Move to top for recency
-      conversationListContainer.prepend(existing);
-      // Highlight updated item briefly to draw attention
-      try {
-        if (existing.animate) {
-          existing.animate(
-            [
-              { backgroundColor: "rgba(250, 204, 21, 0.16)" },
-              { backgroundColor: "transparent" },
-            ],
-            { duration: 420, easing: "ease-out" }
-          );
-        } else {
-          existing.style.transition = "background-color 420ms ease-out";
-          existing.style.backgroundColor = "rgba(250, 204, 21, 0.16)";
-          setTimeout(() => {
-            existing.style.backgroundColor = "";
-            existing.style.transition = "";
-          }, 440);
-        }
-      } catch (e) {
-        // noop
-      }
-    } else {
-      // For the active conversation, only update the date silently (no move/animation)
-    }
-    return;
+  updateConversationHeader(contentDiv, preview);
+  updateConversationDate(contentDiv, formattedDate);
+
+  // Check if this is the currently open conversation
+  let currentConv = null;
+  try {
+    currentConv = sessionStorage.getItem("conversation_id");
+  } catch (error) {
+    console.warn("Failed to read conversation_id from sessionStorage:", error);
   }
 
-  // Create a new conversation item and prepend
+  if (!currentConv || String(currentConv) !== String(conversationId)) {
+    // Move to top for recency and animate
+    const conversationListContainer = existing.parentElement;
+    conversationListContainer?.prepend(existing);
+    animateConversationItem(existing, false);
+  }
+};
+
+// Helper function to create new conversation preview
+const createNewConversationPreview = (
+  conversationListContainer,
+  conversationId,
+  preview,
+  formattedDate
+) => {
   const conversationItem = document.createElement("div");
   conversationItem.setAttribute("data-conversation-id", conversationId);
   conversationItem.className =
@@ -715,15 +920,17 @@ function upsertConversationPreview(elements, conversationId, preview) {
   const contentDiv = document.createElement("div");
   contentDiv.className =
     "flex flex-col gap-1 flex-grow min-w-0 w-full max-w-full";
-  contentDiv.innerHTML = `\n      <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full">\n        ${
-    preview || "New Conversation"
-  }\n      </div>\n      <div class="text-xs text-neutral-500 dark:text-neutral-400">\n        ${formattedDate}\n      </div>\n    `;
+  contentDiv.innerHTML = `
+    <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate w-full max-w-full">
+      ${preview || "New Conversation"}
+    </div>
+    <div class="text-xs text-neutral-500 dark:text-neutral-400">
+      ${formattedDate}
+    </div>
+  `;
 
   // Add a minimal delete button to match UI (no handler here — user can refresh)
-  const deleteButton = document.createElement("button");
-  deleteButton.className =
-    "delete-conversation-btn opacity-0 group-hover:opacity-100 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-all duration-200";
-  deleteButton.innerHTML = `\n      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">\n        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />\n      </svg>\n    `;
+  const deleteButton = createDeleteButton();
 
   wrapper.appendChild(contentDiv);
   wrapper.appendChild(deleteButton);
@@ -731,55 +938,8 @@ function upsertConversationPreview(elements, conversationId, preview) {
 
   // Insert at top
   conversationListContainer.prepend(conversationItem);
-  // Slide/fade-in + highlight new item to draw attention (animate in parallel)
-  try {
-    // Slide + fade-in
-    if (conversationItem.animate) {
-      conversationItem.animate(
-        [
-          { opacity: 0, transform: "translateX(-8px)" },
-          { opacity: 1, transform: "translateX(0)" },
-        ],
-        { duration: 320, easing: "cubic-bezier(0.2, 0, 0, 1)" }
-      );
-    } else {
-      // Fallback: inline transition
-      conversationItem.style.opacity = "0";
-      conversationItem.style.transform = "translateX(-8px)";
-      conversationItem.style.transition =
-        "opacity 320ms cubic-bezier(0.2,0,0,1), transform 320ms cubic-bezier(0.2,0,0,1)";
-      requestAnimationFrame(() => {
-        conversationItem.style.opacity = "1";
-        conversationItem.style.transform = "translateX(0)";
-      });
-      setTimeout(() => {
-        conversationItem.style.transition = "";
-        conversationItem.style.transform = "";
-        conversationItem.style.opacity = "";
-      }, 360);
-    }
-
-    // Subtle highlight after (runs in parallel)
-    if (conversationItem.animate) {
-      conversationItem.animate(
-        [
-          { backgroundColor: "rgba(250, 204, 21, 0.16)" },
-          { backgroundColor: "transparent" },
-        ],
-        { duration: 420, easing: "ease-out" }
-      );
-    } else {
-      conversationItem.style.transition = "background-color 420ms ease-out";
-      conversationItem.style.backgroundColor = "rgba(250, 204, 21, 0.16)";
-      setTimeout(() => {
-        conversationItem.style.backgroundColor = "";
-        conversationItem.style.transition = "";
-      }, 440);
-    }
-  } catch (e) {
-    // noop
-  }
-}
+  animateConversationItem(conversationItem, true);
+};
 
 // Load a specific conversation thread
 async function loadConversation(elements, conversationId) {
@@ -790,7 +950,12 @@ async function loadConversation(elements, conversationId) {
   );
 
   if (data) {
-    sessionStorage.setItem("conversation_id", conversationId);
+    try {
+      sessionStorage.setItem("conversation_id", conversationId);
+    } catch (error) {
+      console.warn("Failed to save conversation_id to sessionStorage:", error);
+    }
+
     elements.chat.innerHTML = "";
 
     // Process messages sequentially to ensure proper rendering
@@ -804,7 +969,8 @@ async function loadConversation(elements, conversationId) {
         wrapCodeBlocks(textDiv, elements);
 
         // Force a reflow to ensure the DOM is updated
-        void textDiv.offsetHeight;
+        // use getBoundingClientRect() (a function call) to avoid unused-expression lint errors
+        textDiv.getBoundingClientRect();
 
         // For messages containing mermaid diagrams, ensure they're visible
         if (msg.content.includes("```mermaid")) {
@@ -822,53 +988,22 @@ async function loadConversation(elements, conversationId) {
   }
 }
 
-// Enhanced SQL Editor Toggle Functionality
-const sqlEditorToggle = document.getElementById("sql-editor-toggle");
-const sqlEditorPopup = document.getElementById("sql-editor-popup");
-const sqlEditorClose = document.getElementById("sql-editor-close");
+// SQL Editor functionality setup
+const setupSqlEditor = () => {
+  const sqlEditorToggle = document.getElementById("sql-editor-toggle");
+  const sqlEditorPopup = document.getElementById("sql-editor-popup");
+  const sqlEditorClose = document.getElementById("sql-editor-close");
 
-// SQL Editor state management
-const sqlEditorState = {
-  isOpen: false,
-};
+  if (!sqlEditorToggle || !sqlEditorPopup || !sqlEditorClose) return;
 
-if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
+  // SQL Editor state management
+  const sqlEditorState = { isOpen: false };
+
   // Ensure editor starts closed (fix for auto-opening issue)
   sqlEditorPopup.classList.add("translate-x-full");
   sqlEditorPopup.classList.remove("translate-x-0");
 
-  // Open SQL Editor
-  sqlEditorToggle.addEventListener("click", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    openEditor();
-  });
-
-  // Close SQL Editor
-  sqlEditorClose.addEventListener("click", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeEditor();
-  });
-
-  // Close editor when clicking outside
-  document.addEventListener("click", function (e) {
-    if (
-      sqlEditorState.isOpen &&
-      !sqlEditorPopup.contains(e.target) &&
-      !sqlEditorToggle.contains(e.target)
-    ) {
-      closeEditor();
-    }
-  });
-
-  // Prevent clicks inside the editor from closing it
-  sqlEditorPopup.addEventListener("click", function (e) {
-    e.stopPropagation();
-  });
-
-  // Functions for editor state management
-  function openEditor() {
+  const openEditor = () => {
     sqlEditorPopup.classList.remove("translate-x-full");
     sqlEditorPopup.classList.add("translate-x-0");
     sqlEditorPopup.classList.remove(
@@ -881,13 +1016,11 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
 
     // Focus on editor if CodeMirror is available
     setTimeout(() => {
-      if (window.sqlEditor && window.sqlEditor.focus) {
-        window.sqlEditor.focus();
-      }
+      window.sqlEditor?.focus?.();
     }, 300);
-  }
+  };
 
-  function closeEditor() {
+  const closeEditor = () => {
     // Hide the popup completely and reset all styles
     sqlEditorPopup.classList.remove("translate-x-0");
     sqlEditorPopup.classList.add("translate-x-full");
@@ -901,15 +1034,45 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
     sqlEditorState.isOpen = false;
     sqlEditorPopup.style.height = "";
     sqlEditorPopup.classList.remove("min-h-0");
+
     // Show content area for next open
     const contentArea = sqlEditorPopup.querySelector(".sql-editor-content");
     if (contentArea) {
       contentArea.style.display = "flex";
     }
-  }
+  };
+
+  // Event listeners
+  sqlEditorToggle.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openEditor();
+  });
+
+  sqlEditorClose.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeEditor();
+  });
+
+  // Close editor when clicking outside
+  document.addEventListener("click", (e) => {
+    if (
+      sqlEditorState.isOpen &&
+      !sqlEditorPopup.contains(e.target) &&
+      !sqlEditorToggle.contains(e.target)
+    ) {
+      closeEditor();
+    }
+  });
+
+  // Prevent clicks inside the editor from closing it
+  sqlEditorPopup.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
 
   // Keyboard shortcuts
-  document.addEventListener("keydown", function (e) {
+  document.addEventListener("keydown", (e) => {
     // Ctrl/Cmd + Shift + S to toggle SQL editor
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
       e.preventDefault();
@@ -925,4 +1088,7 @@ if (sqlEditorToggle && sqlEditorPopup && sqlEditorClose) {
       closeEditor();
     }
   });
-}
+};
+
+// Initialize SQL Editor on page load
+setupSqlEditor();
