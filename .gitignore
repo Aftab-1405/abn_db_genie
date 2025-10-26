@@ -19,8 +19,6 @@ instance/
 node_modules/
 npm-debug.log
 yarn-error.log
-package.json
-package-lock.json
 
 # Editor
 .idea/
@@ -152,9 +150,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# PyCharm
-#.idea/
-
 # Abstra
 .abstra/
 
@@ -163,7 +158,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-# Cursor
-.cursorignore
-.cursorindexingignore
