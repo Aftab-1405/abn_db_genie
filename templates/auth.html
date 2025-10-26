@@ -101,8 +101,13 @@
 <body class="min-h-screen bg-stone-950 font-sans overflow-hidden">
 
   <!-- Background Video -->
-  <video autoplay loop muted playsinline class="fixed inset-0 w-full h-full object-cover z-0">
+  <video autoplay loop muted playsinline class="fixed inset-0 w-full h-full object-cover z-0"
+    aria-label="Database visualization background video showing data flows and network connections">
     <source src="/static/DB-Genie.mp4" type="video/mp4">
+    <!-- Subtitles and descriptions for accessibility -->
+    <track kind="subtitles" src="/static/subtitles.vtt" srclang="en" label="English" default>
+    <track kind="descriptions" src="/static/descriptions.vtt" srclang="en" label="English Descriptions">
+    <track kind="captions" src="/static/captions.vtt" srclang="en" label="English Captions">
     Your browser does not support the video tag.
   </video>
 
@@ -296,6 +301,17 @@
   </div>
 
   <script>
+    // Helper function to get indicator color class
+    function getIndicatorColorClass(type) {
+      if (type === 'success') {
+        return 'bg-green-400';
+      }
+      if (type === 'error') {
+        return 'bg-red-400';
+      }
+      return 'bg-blue-400';
+    }
+
     // Toggle between login and register forms
     const loginContainer = document.getElementById('login-container');
     const registerContainer = document.getElementById('register-container');
@@ -324,11 +340,8 @@
 
       messageEl.textContent = message;
 
-      // Update indicator color based on type
-      indicator.className = `w-2 h-2 rounded-full animate-pulse ${type === 'success' ? 'bg-green-400' :
-        type === 'error' ? 'bg-red-400' :
-          'bg-blue-400'
-        }`;
+      // Update indicator color using the helper function
+      indicator.className = `w-2 h-2 rounded-full animate-pulse ${getIndicatorColorClass(type)}`;
 
       notificationEl.classList.add('show');
 

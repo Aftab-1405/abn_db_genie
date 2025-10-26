@@ -164,7 +164,7 @@
         const onLeave = () => {
           try {
             if (document.activeElement === el) el.blur();
-          } catch (err) { }
+          } catch (err) { console.debug?.('Failed to blur element on pointerleave', err); }
           el.removeAttribute('data-tooltip-pos'); // allow reposition recalculation later
           el.removeEventListener('pointerleave', onLeave);
         };
@@ -178,10 +178,9 @@
         const els = document.querySelectorAll('.has-tooltip');
         els.forEach((el) => {
           // If element is focused but not hovered, blur it to hide tooltip
-          const rect = el.getBoundingClientRect();
           const isHovered = !!el.matches(':hover');
           if (document.activeElement === el && !isHovered) {
-            try { el.blur(); } catch (err) { }
+            try { el.blur(); } catch (err) { console.debug?.('Failed to blur element during global click cleanup', err); }
           }
         });
       });
