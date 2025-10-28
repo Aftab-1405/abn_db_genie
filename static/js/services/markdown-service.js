@@ -215,8 +215,23 @@ class MarkdownService {
         sanitize: false,
       });
       const safeHtml = DOMPurify.sanitize(dirtyHtml);
-      this.partialCache.set(cacheKey, safeHtml);
-      return safeHtml;
+      // Create temporary div to allow semantic post-processing (add data-attributes
+      // and classes for code blocks, tables, mermaid detection etc.). This makes
+      // incremental rendering behave the same as full rendering so code-block
+      // utilities can attach buttons and run highlighting progressively.
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = safeHtml;
+      try {
+        this._addSemanticClasses(tempDiv);
+      } catch (e) {
+        // If adding semantic classes fails for some reason, fall back to safeHtml
+        console.debug?.("_addSemanticClasses failed during partial parse:", e);
+      }
+
+      const processedHtml = tempDiv.innerHTML;
+      // Cache and return processed HTML
+      this.partialCache.set(cacheKey, processedHtml);
+      return processedHtml;
     } catch (e) {
       // Log parse errors for debugging, then fallback to safe escape
       console.debug?.("Partial markdown parse failed:", e);

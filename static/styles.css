@@ -1623,6 +1623,24 @@ video {
   gap: 0.75rem;
   padding: 0.5rem;
   opacity: 0;
+}
+
+.\!message {
+  margin-bottom: 1rem;
+  display: flex;
+  --tw-translate-y: 0.5rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+  gap: 0.75rem;
+  padding: 0.5rem;
+  opacity: 0;
+}
+
+.message {
+  transition-duration: 300ms;
+  transition: all 0.2s ease-in-out;
+}
+
+.\!message {
   transition-duration: 300ms;
   transition: all 0.2s ease-in-out;
 }
@@ -6167,6 +6185,10 @@ video {
   padding-top: 2rem;
 }
 
+.pl-5 {
+  padding-left: 1.25rem;
+}
+
 .text-left {
   text-align: left;
 }
@@ -7380,22 +7402,6 @@ video {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.6, 1);
 }
 
-.\[oaicite\:2\] {
-  oaicite: 2;
-}
-
-.\[oaicite\:3\] {
-  oaicite: 3;
-}
-
-.\[oaicite\:4\] {
-  oaicite: 4;
-}
-
-.\[oaicite\:5\] {
-  oaicite: 5;
-}
-
 .after\:absolute::after {
   content: var(--tw-content);
   position: absolute;
@@ -7523,6 +7529,11 @@ video {
 .hover\:bg-green-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(21 128 61 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-indigo-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(67 56 202 / var(--tw-bg-opacity));
 }
 
 .hover\:bg-neutral-100:hover {
@@ -7816,6 +7827,11 @@ video {
 .dark\:border-red-800:is(.dark *) {
   --tw-border-opacity: 1;
   border-color: rgb(153 27 27 / var(--tw-border-opacity));
+}
+
+.dark\:border-gray-900:is(.dark *) {
+  --tw-border-opacity: 1;
+  border-color: rgb(17 24 39 / var(--tw-border-opacity));
 }
 
 .dark\:bg-blue-900:is(.dark *) {

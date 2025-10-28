@@ -83,8 +83,35 @@ export function appendGenieStreamChunk(elements, genieMessageElements, chunk) {
     textDiv.appendChild(contentContainer);
   }
 
-  // Append the chunk directly. Markdown will be processed on finalization.
-  contentContainer.textContent += chunk;
+  // Maintain a raw-text buffer on the container so we can incrementally
+  // process partial markdown without losing the original stream.
+  const prevRaw = contentContainer.getAttribute("data-raw") || "";
+  const newRaw = prevRaw + chunk;
+  contentContainer.setAttribute("data-raw", newRaw);
+
+  // Process the partial markdown into HTML and update the container.
+  // The markdownService handles sanitization and semantic class additions
+  // so code blocks / mermaid detection will work incrementally.
+  try {
+    const processed = markdownService.processPartialMarkdown(newRaw, null);
+    // Replace innerHTML with the processed partial HTML
+    contentContainer.innerHTML = processed;
+
+    // Ensure interactive features on code blocks are applied incrementally.
+    // wrapCodeBlocks is idempotent and will skip already-processed blocks.
+    requestAnimationFrame(() => {
+      try {
+        wrapCodeBlocks(contentContainer, elements);
+      } catch (e) {
+        console.debug?.("wrapCodeBlocks incremental error:", e);
+      }
+    });
+  } catch (e) {
+    // Fallback: append as plain text if partial parse fails.
+    contentContainer.textContent = newRaw;
+    console.debug?.("Partial render failed, falling back to text.", e);
+  }
+
   scrollToBottom(elements);
 }
 
