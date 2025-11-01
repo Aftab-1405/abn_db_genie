@@ -249,8 +249,13 @@ const handleDbConnectionForm = async (elements, formData) => {
         "success"
       );
 
-      // Populate schemas dropdown
-      populateSchemas(elements, data.schemas);
+      // Populate schemas dropdown - handle both 'schemas' and 'databases' keys
+      const databases = data.schemas || data.databases || [];
+      populateSchemas(elements, databases);
+
+      // Log for debugging
+      console.debug('Connected to server, databases:', databases);
+
       return true;
     } else {
       showNotification(
@@ -530,7 +535,34 @@ const setupProfileMenu = (elements) => {
       ev.preventDefault();
 
       try {
-        // Import Firebase auth dynamically
+        // Step 1: Disconnect from database if connected
+        if (elements.serverConnected) {
+          try {
+            await fetch('/disconnect_db', { method: 'POST' });
+            console.debug('Database disconnected during logout');
+          } catch (dbError) {
+            console.debug('Database disconnect error during logout:', dbError);
+            // Continue with logout even if disconnect fails
+          }
+        }
+
+        // Step 2: Clear frontend state
+        elements.serverConnected = false;
+        if (elements.databasesDropdown) {
+          elements.databasesDropdown.innerHTML = '';
+        }
+        if (typeof window.updateConnectionStatus === 'function') {
+          window.updateConnectionStatus(false);
+        }
+
+        // Step 3: Clear localStorage flags
+        try {
+          localStorage.removeItem('dbDisconnectedAt');
+        } catch (e) {
+          console.debug('localStorage clear error:', e);
+        }
+
+        // Step 4: Import Firebase auth dynamically
         const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js");
         const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js");
 
@@ -544,16 +576,15 @@ const setupProfileMenu = (elements) => {
           appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
         };
 
-        // Initialize Firebase and sign out
+        // Step 5: Initialize Firebase and sign out
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-
         await signOut(auth);
 
-        // Clear session on backend
+        // Step 6: Clear session on backend (this should also clean up DB connections)
         await fetch("/logout", { method: "POST" });
 
-        // Redirect to auth page
+        // Step 7: Redirect to auth page
         window.location.replace("/auth");
       } catch (error) {
         console.error("Logout error:", error);

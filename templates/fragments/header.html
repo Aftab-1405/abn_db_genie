@@ -31,12 +31,12 @@
         <!-- Profile & Settings with consistent sizing -->
         <div class="relative min-w-0">
             <button id="profile-btn"
-                class="app-button flex items-center justify-center p-0.5 h-10 w-10 rounded-full has-tooltip relative hover:ring-2 hover:ring-red-500/50 transition-all duration-200"
+                class="app-button flex items-center justify-center p-0 h-10 w-10 rounded-full has-tooltip relative transition-all duration-200"
                 data-tooltip="Profile">
-                <!-- Consistent sizing with SQL editor button -->
+                <!-- Profile picture fills the button -->
                 <img src="/static/images/user.png" alt="User Profile"
-                    class="w-6 h-6 rounded-full object-cover ring-2 ring-red-500" loading="eager" width="24"
-                    height="24">
+                    class="w-10 h-10 rounded-full object-cover ring-1 ring-red-500" loading="eager" width="40"
+                    height="40">
             </button>
             <div id="profile-menu"
                 class="absolute w-56 md:w-64 right-0 mt-2 app-surface-secondary border app-border rounded-xl opacity-0 app-transition origin-top-right transform z-10 invisible backdrop-blur-sm shadow-glass-strong">
@@ -44,8 +44,8 @@
                 <div class="p-4 border-b app-border">
                     <div class="flex items-center space-x-3">
                         <img src="/static/images/user.png" alt="User Profile"
-                            class="w-10 h-10 rounded-full object-cover ring-2 ring-red-500" loading="eager"
-                            width="40" height="40">
+                            class="w-12 h-12 rounded-full object-cover ring-1 ring-red-500" loading="eager"
+                            width="48" height="48">
                         <div>
                             <div class="app-text font-semibold text-sm">Guest User</div>
                             <div class="app-text-secondary text-xs">guest@example.com</div>
