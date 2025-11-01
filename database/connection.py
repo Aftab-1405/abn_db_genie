@@ -140,6 +140,14 @@ def update_db_config(database_name):
             # ignore if attribute already removed
             pass
 
+    # Clear any cached DB metadata that may have been populated for the
+    # previous database selection so callers will fetch fresh metadata.
+    try:
+        from database.operations import DatabaseOperations
+        DatabaseOperations.clear_cache()
+    except Exception:
+        logger.debug('Failed to clear DatabaseOperations cache during update_db_config')
+
 def get_current_db_name():
     """Get currently selected database name"""
     return db_config.get('database')

@@ -148,6 +148,14 @@ def _reset_db_connection_pool(db_connection):
 def _handle_server_connection(host, port, user, password):
     """Apply new server config, reset state, test connection and return schemas."""
     from database import connection as db_connection
+    # Clear any cached DB metadata so subsequent get_databases() call returns
+    # fresh results for the newly-configured server.
+    try:
+        from database.operations import DatabaseOperations
+        DatabaseOperations.clear_cache()
+    except Exception:
+        # Non-fatal: proceed even if cache clear fails
+        logger.debug('Failed to clear DatabaseOperations cache before applying new server config')
     # Update config
     db_connection.db_config.update({
         'host': host,
