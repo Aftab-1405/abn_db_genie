@@ -98,7 +98,7 @@
     }
 
     .conversation-item.active {
-        @apply app-surface-secondary border-l-2 border-brand-purple-500;
+        @apply app-surface-secondary border-l-2 border-blue-500;
     }
 
     .conversation-item:hover {
@@ -132,7 +132,7 @@
     }
 
     .message__content {
-        @apply flex-1 min-w-0 text-sm md:text-base;
+        @apply flex-1 min-w-0 text-base;
         @apply app-text;
     }
 
@@ -168,7 +168,7 @@
 
     /* Links */
     .chat-prose a {
-        @apply text-brand-purple-600 dark:text-brand-purple-400 hover:underline app-transition;
+        @apply text-blue-600 dark:text-blue-400 hover:underline app-transition;
     }
 
     /* Inline code */
@@ -247,12 +247,12 @@
 
     .code-block__button--copy {
         @apply app-surface hover:app-surface-secondary;
-        @apply app-border border focus:ring-brand-purple-500;
+        @apply app-border border focus:ring-blue-500;
     }
 
     .code-block__button--run {
         @apply bg-green-500 hover:bg-green-600 text-white;
-        @apply focus:ring-green-400 shadow-glow-brand;
+        @apply focus:ring-green-400;
     }
 
     .code-block__button--copied {
@@ -358,7 +358,7 @@
 
     /* Dark mode highlight.js adjustments */
     .dark .chat-prose .hljs-keyword {
-        @apply text-purple-400;
+        @apply text-pink-400;
     }
 
     .dark .chat-prose .hljs-string {
@@ -375,7 +375,7 @@
 
     /* Light mode highlight.js adjustments */
     .chat-prose .hljs-keyword {
-        @apply text-purple-700;
+        @apply text-pink-700;
     }
 
     .chat-prose .hljs-string {
@@ -596,7 +596,7 @@
 
     /* Focus styles for keyboard navigation */
     .code-block__button:focus-visible {
-        @apply ring-2 ring-offset-2 ring-brand-purple-500;
+        @apply ring-2 ring-offset-2 ring-blue-500;
     }
 
     /* High contrast mode support */
@@ -660,7 +660,7 @@
 
     /* Focus styles for keyboard navigation */
     .code-block__button:focus-visible {
-        @apply ring-2 ring-offset-2 ring-brand-purple-500;
+        @apply ring-2 ring-offset-2 ring-blue-500;
     }
 
     /* High contrast mode support */

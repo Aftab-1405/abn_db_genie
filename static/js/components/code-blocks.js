@@ -86,7 +86,7 @@ function addCodeBlockButtons(pre, codeText, isSQL, elements) {
   buttonContainer.className = "code-block__buttons";
 
   // Copy button
-  const copyBtn = createCopyButton(codeText);
+  const copyBtn = createCopyButton(codeText, elements);
   buttonContainer.appendChild(copyBtn);
 
   // Run button for SQL
@@ -101,12 +101,12 @@ function addCodeBlockButtons(pre, codeText, isSQL, elements) {
 /**
  * Create copy button with functionality
  */
-function createCopyButton(codeText) {
+function createCopyButton(codeText, elements) {
   const copyBtn = document.createElement("button");
   copyBtn.className = "code-block__button code-block__button--copy";
   copyBtn.innerHTML = `
     <svg class="code-block__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
     </svg>
   `;
@@ -129,18 +129,18 @@ function createCopyButton(codeText) {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
       `;
-      showNotification("Code copied to clipboard", "success");
+      if (elements) showNotification(elements, "Code copied to clipboard", "success");
     } catch (err) {
       // Log the error and notify the user
       console.error("Failed to copy code to clipboard", err);
-      showNotification("Failed to copy code", "error");
+      if (elements) showNotification(elements, "Failed to copy code", "error");
     }
 
     copyTimeoutId = setTimeout(() => {
       copyBtn.classList.remove("code-block__button--copied");
       copyBtn.innerHTML = `
         <svg class="code-block__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       `;

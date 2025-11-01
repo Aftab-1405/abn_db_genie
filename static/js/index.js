@@ -120,42 +120,94 @@ document.addEventListener("DOMContentLoaded", () => {
   // On load, try to fetch databases and restore connection state if server already connected
   (async () => {
     try {
+      // Try to get connection status from backend
       const resp = await fetch('/db_status');
       if (resp.ok) {
         const status = await resp.json();
         if (status && status.connected) {
           elements.serverConnected = true;
+
+          // Get current database name if any
+          const currentDb = status.current_database || status.database || '';
+
           // Populate databases dropdown if returned
           if (Array.isArray(status.databases) && status.databases.length > 0) {
             const frag = document.createDocumentFragment();
+
+            // Add placeholder option first
+            const placeholderOpt = document.createElement('option');
+            placeholderOpt.value = '';
+            placeholderOpt.textContent = 'Select database...';
+            frag.appendChild(placeholderOpt);
+
             status.databases.forEach((db) => {
+              const opt = document.createElement('option');
+              opt.value = db;
+              opt.textContent = db;
+              // Pre-select the current database if it matches
+              if (currentDb && db === currentDb) {
+                opt.selected = true;
+              }
+              frag.appendChild(opt);
+            });
+            elements.databasesDropdown.appendChild(frag);
+          }
+
+          // Update UI state with current database if connected to specific one
+          if (typeof window.updateConnectionStatus === 'function') {
+            window.updateConnectionStatus(true, currentDb);
+          }
+          return; // Successfully restored state
+        }
+      }
+
+      // If /db_status fails or shows not connected, try fallback with /get_databases
+      try {
+        const dbResp = await fetch('/get_databases');
+        if (dbResp.ok) {
+          const dbData = await dbResp.json();
+          if (dbData.status === 'success' && Array.isArray(dbData.databases) && dbData.databases.length > 0) {
+            // We have databases, so connection exists
+            elements.serverConnected = true;
+
+            const frag = document.createDocumentFragment();
+
+            // Add placeholder option first
+            const placeholderOpt = document.createElement('option');
+            placeholderOpt.value = '';
+            placeholderOpt.textContent = 'Select database...';
+            frag.appendChild(placeholderOpt);
+
+            dbData.databases.forEach((db) => {
               const opt = document.createElement('option');
               opt.value = db;
               opt.textContent = db;
               frag.appendChild(opt);
             });
             elements.databasesDropdown.appendChild(frag);
-          } else {
-            // Fallback: call fetchDatabases to attempt to load databases
-            try {
-              await fetchDatabases(elements);
-            } catch (e) {
-              console.debug('fetchDatabases fallback failed:', e);
-            }
-          }
 
-          // Show disconnect button if present
-          const disconnectBtn = document.getElementById('disconnect-db');
-          if (disconnectBtn) disconnectBtn.classList.remove('hidden');
-        } else {
-          elements.serverConnected = false;
+            // Update UI - server connected but no specific database selected
+            if (typeof window.updateConnectionStatus === 'function') {
+              window.updateConnectionStatus(true);
+            }
+            return;
+          }
         }
-      } else {
-        elements.serverConnected = false;
+      } catch (fallbackError) {
+        console.debug('Fallback database fetch failed:', fallbackError);
+      }
+
+      // If both methods fail, we're not connected
+      elements.serverConnected = false;
+      if (typeof window.updateConnectionStatus === 'function') {
+        window.updateConnectionStatus(false);
       }
     } catch (e) {
       console.debug('Auto DB status check failed on load:', e);
       elements.serverConnected = false;
+      if (typeof window.updateConnectionStatus === 'function') {
+        window.updateConnectionStatus(false);
+      }
     }
   })();
 

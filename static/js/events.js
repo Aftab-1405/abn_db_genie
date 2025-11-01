@@ -272,6 +272,12 @@ const populateSchemas = (elements, schemas) => {
   const dropdown = elements.databasesDropdown;
   dropdown.innerHTML = "";
 
+  // Add placeholder option first
+  const placeholderOpt = document.createElement("option");
+  placeholderOpt.value = "";
+  placeholderOpt.textContent = "Select database...";
+  dropdown.appendChild(placeholderOpt);
+
   if (Array.isArray(schemas)) {
     schemas.forEach((db) => {
       const opt = document.createElement("option");
@@ -288,28 +294,31 @@ window.updateConnectionStatus = function(isConnected, dbName = '') {
   const disconnectBtn = document.getElementById('disconnect-db');
   const statusIndicator = document.getElementById('status-indicator');
   const statusText = document.getElementById('status-text');
+  const dbDropdown = document.getElementById('databases');
 
   if (connectBtn && disconnectBtn && statusIndicator && statusText) {
     if (isConnected) {
-      // Connected to server or database
-      // Connect button stays enabled unless connected to a specific database
-      if (dbName) {
-        // Connected to specific database - disable connect, enable disconnect
-        connectBtn.disabled = true;
-        connectBtn.classList.add('opacity-50');
-        statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse';
-        statusText.textContent = `Connected: ${dbName}`;
-        statusText.className = 'app-text-secondary text-xs';
-      } else {
-        // Connected to server only - keep connect enabled for database selection
-        connectBtn.disabled = false;
-        connectBtn.classList.remove('opacity-50');
-        statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-green-500';
-        statusText.textContent = 'Server connected';
-        statusText.className = 'app-text-secondary text-xs';
-      }
+      // Connected to server - enable disconnect, disable connect
+      connectBtn.disabled = true;
+      connectBtn.classList.add('opacity-50');
       disconnectBtn.disabled = false;
       disconnectBtn.classList.remove('opacity-50');
+
+      // Enable dropdown for database selection
+      if (dbDropdown) {
+        dbDropdown.disabled = false;
+      }
+
+      if (dbName) {
+        // Connected to specific database
+        statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse';
+        statusText.textContent = `Connected: ${dbName}`;
+      } else {
+        // Connected to server only
+        statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-green-500';
+        statusText.textContent = 'Server connected';
+      }
+      statusText.className = 'app-text-secondary text-xs';
     } else {
       // Disconnected state
       connectBtn.disabled = false;
@@ -319,6 +328,11 @@ window.updateConnectionStatus = function(isConnected, dbName = '') {
       statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-gray-400';
       statusText.textContent = 'Not connected';
       statusText.className = 'app-text-secondary text-xs';
+
+      // Disable dropdown when not connected
+      if (dbDropdown) {
+        dbDropdown.disabled = true;
+      }
     }
   }
 };
@@ -336,22 +350,23 @@ const setupDbConnectionModal = (elements) => {
   // Use elements.serverConnected as shared state across the UI
   if (typeof elements.serverConnected === 'undefined') elements.serverConnected = false;
 
-  // Connect to selected database or open modal for credentials
+  // Connect button ONLY opens modal for server connection
   elements.connectDbButton.addEventListener("click", () => {
-    // If not connected to server, open modal for credentials
-    if (!elements.serverConnected || elements.databasesDropdown.options.length === 0) {
-      dbModal.classList.remove("hidden");
-      dbModal.classList.add("flex");
-    } else {
-      // If already connected, connect to selected database
-      const dbName = elements.databasesDropdown.value;
-      if (!dbName) {
-        showNotification(elements, "Please select a database", "error");
-        return;
-      }
-      // Use existing handleConnectDb logic
-      handleConnectDb(elements);
+    dbModal.classList.remove("hidden");
+    dbModal.classList.add("flex");
+  });
+
+  // Database selection via dropdown change event
+  elements.databasesDropdown.addEventListener("change", async () => {
+    const dbName = elements.databasesDropdown.value;
+    if (!dbName) {
+      // User selected placeholder option
+      window.updateConnectionStatus(true); // Server connected, no database
+      return;
     }
+
+    // Automatically connect to selected database
+    await handleConnectDb(elements);
   });
 
   dbCancel.addEventListener("click", () => {

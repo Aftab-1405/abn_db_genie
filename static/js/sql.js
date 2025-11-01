@@ -11,6 +11,13 @@ export async function fetchDatabases(elements) {
     const data = await resp.json();
     if (data.status === "success") {
       const frag = document.createDocumentFragment();
+
+      // Add placeholder option first
+      const placeholderOpt = document.createElement("option");
+      placeholderOpt.value = "";
+      placeholderOpt.textContent = "Select database...";
+      frag.appendChild(placeholderOpt);
+
       data.databases.forEach((db) => {
         const opt = document.createElement("option");
         opt.value = db;
@@ -46,8 +53,8 @@ export async function handleConnectDb(elements) {
 
     if (data.status === "connected") {
       // Update connection status UI with database name
-      if (typeof updateConnectionStatus === 'function') {
-        updateConnectionStatus(true, dbName);
+      if (typeof window.updateConnectionStatus === 'function') {
+        window.updateConnectionStatus(true, dbName);
       }
       showNotification(elements, `Connected to database ${dbName}`, "success");
     } else {
