@@ -18,9 +18,12 @@ export async function fetchDatabases(elements) {
         frag.appendChild(opt);
       });
       elements.databasesDropdown.appendChild(frag);
+      return { status: 'success', databases: data.databases };
     }
+    return { status: 'error', message: data.message || 'No databases' };
   } catch {
     showNotification(elements, "Failed to fetch databases", "error");
+    return { status: 'error', message: 'Fetch failed' };
   }
 }
 
@@ -31,9 +34,7 @@ export async function handleConnectDb(elements) {
   const dbName = elements.databasesDropdown.value;
   if (!dbName) return;
 
-  const originalContent = elements.connectDbButton.innerHTML;
-  elements.connectDbButton.disabled = true;
-  elements.connectDbButton.innerHTML = elements.LOADING_SPINNER_HTML;
+  const originalContent = elements.setButtonLoading ? elements.setButtonLoading(elements.connectDbButton) : null;
 
   try {
     const resp = await fetch("/connect_db", {
@@ -42,18 +43,25 @@ export async function handleConnectDb(elements) {
       body: JSON.stringify({ db_name: dbName }),
     });
     const data = await resp.json();
-    showNotification(
-      elements,
-      data.status === "connected"
-        ? `Connected to database ${dbName}`
-        : data.message,
-      data.status === "connected" ? "success" : "error"
-    );
+
+    if (data.status === "connected") {
+      // Update connection status UI with database name
+      if (typeof updateConnectionStatus === 'function') {
+        updateConnectionStatus(true, dbName);
+      }
+      showNotification(elements, `Connected to database ${dbName}`, "success");
+    } else {
+      showNotification(elements, data.message, "error");
+    }
   } catch {
     showNotification(elements, "Failed to connect to the database", "error");
   } finally {
-    elements.connectDbButton.innerHTML = originalContent;
-    elements.connectDbButton.disabled = false;
+    if (elements.clearButtonLoading) {
+      elements.clearButtonLoading(elements.connectDbButton, originalContent);
+    } else {
+      elements.connectDbButton.disabled = false;
+      if (originalContent !== null) elements.connectDbButton.innerHTML = originalContent;
+    }
   }
 }
 
@@ -61,6 +69,11 @@ export async function handleConnectDb(elements) {
 // 3) executeSqlString: Called both from “Run” buttons and “Execute” editor
 // —————————————————————————————————————————————————————————
 export async function executeSqlString(elements, sqlText) {
+  // Prevent executing queries if server is not connected
+  if (!elements?.serverConnected) {
+    showNotification(elements, 'Not connected to any database server', 'error');
+    return;
+  }
   try {
     const resp = await fetch("/run_sql_query", {
       method: "POST",

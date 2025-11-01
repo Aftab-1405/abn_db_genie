@@ -20,11 +20,16 @@ _pool_lock = threading.Lock()
 
 # Current database configuration
 db_config = Config.MYSQL_CONFIG.copy()
+# Whether the server/db credentials have been configured (set by connect flow)
+server_configured = bool(db_config.get('host') and db_config.get('user'))
 
 def _initialize_pool():
     """Initialize connection pool with optimized settings"""
     global _connection_pool
-    
+    # If there's no host/user configured, do not auto-create a pool.
+    if not db_config.get('host') or not db_config.get('user'):
+        raise RuntimeError('Database server not configured')
+
     if _connection_pool is None:
         with _pool_lock:
             if _connection_pool is None:  # Double-check locking
@@ -55,6 +60,9 @@ def get_db_connection():
     
     # Initialize pool if not already done
     if _connection_pool is None:
+        # If server is not configured, raise a clear error instead of silently reconnecting
+        if not db_config.get('host') or not db_config.get('user'):
+            raise RuntimeError('Database server not configured')
         _initialize_pool()
     
     # Use thread-local connection if available and valid
@@ -79,7 +87,10 @@ def get_db_connection():
     except Exception as e:
         logger.error(f"Failed to get connection from pool: {e}")
         # Fallback to direct connection
-        return mysql.connector.connect(**db_config)
+        # Only attempt a direct connect if server is configured
+        if db_config.get('host') and db_config.get('user'):
+            return mysql.connector.connect(**db_config)
+        raise
 
 @contextmanager
 def get_cursor(dictionary=False, buffered=True):
@@ -133,6 +144,11 @@ def get_current_db_name():
     """Get currently selected database name"""
     return db_config.get('database')
 
+
+def is_server_configured():
+    """Return True when host/user credentials are present in db_config."""
+    return bool(db_config.get('host') and db_config.get('user'))
+
 def close_all_connections():
     """Close all connections and cleanup"""
     global _connection_pool
@@ -160,3 +176,14 @@ def close_all_connections():
     
     # Shutdown executor
     executor.shutdown(wait=True)
+    # Clear sensitive configuration so the server will not auto-reconnect
+    try:
+        db_config.update({
+            'host': None,
+            'port': None,
+            'user': None,
+            'password': None,
+            'database': None
+        })
+    except Exception:
+        pass

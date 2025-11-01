@@ -208,6 +208,30 @@ class MarkdownService {
       return this.partialCache.get(cacheKey);
     }
 
+    // If there's an unclosed fenced code block (e.g. streaming mermaid content),
+    // avoid producing partially rendered HTML which shows raw mermaid text.
+    // Detect an opening triple-backtick without a matching closing triple-backtick
+    // and return an escaped preformatted block to hide partial diagrams during streaming.
+    try {
+      const hasAnyFence = partialContent.includes('```');
+      const closedFencedBlock = /```[\s\S]*?```/.test(partialContent);
+      if (hasAnyFence && !closedFencedBlock) {
+        // Escape HTML and return inside a <pre><code> to keep it readable but not
+        // interpreted as markdown. This prevents mermaid code from flashing as text
+        // while the model is still streaming the diagram content.
+        const escaped = partialContent
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        const placeholder = `<pre><code class="hljs">${escaped}</code></pre>`;
+        this.partialCache.set(cacheKey, placeholder);
+        return placeholder;
+      }
+    } catch (e) {
+      // If fence detection fails for any reason, just continue to normal parsing
+      console.debug?.('Fence detection failed in processPartialMarkdown:', e);
+    }
+
     try {
       const dirtyHtml = marked.parse(partialContent, {
         gfm: true,

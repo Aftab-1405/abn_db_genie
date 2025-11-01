@@ -13,8 +13,9 @@ export function loadMermaid(callback) {
   }
 
   const script = document.createElement("script");
+  // Use a modern mermaid release to ensure advanced diagram support
   script.src =
-    "https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js";
+    "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js";
   script.onload = () => initializeMermaid(callback);
   document.head.appendChild(script);
 }

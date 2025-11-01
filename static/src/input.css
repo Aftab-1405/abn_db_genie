@@ -4,6 +4,108 @@
 
 @layer components {
     /* =================================================================
+       BUTTON LOADING - Running light border animation
+       ================================================================= */
+
+    .button-loading {
+        @apply relative pointer-events-none opacity-80;
+    }
+
+    .button-loading::before {
+        content: '';
+        @apply absolute inset-0 rounded-[inherit] p-[2px];
+        background: linear-gradient(90deg,
+            transparent 0%,
+            transparent 30%,
+            rgba(168, 85, 247, 0.8) 50%,
+            transparent 70%,
+            transparent 100%
+        );
+        background-size: 200% 100%;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        animation: border-run 1.5s linear infinite;
+    }
+
+    .dark .button-loading::before {
+        background: linear-gradient(90deg,
+            transparent 0%,
+            transparent 30%,
+            rgba(168, 85, 247, 1) 50%,
+            transparent 70%,
+            transparent 100%
+        );
+        background-size: 200% 100%;
+    }
+
+    /* =================================================================
+       SQL EDITOR THEME - CodeMirror theme customization
+       ================================================================= */
+
+    .CodeMirror {
+        height: 100%;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        @apply app-surface app-text;
+    }
+
+    .CodeMirror-gutters {
+        @apply app-surface-secondary app-border border-r;
+    }
+
+    .CodeMirror-linenumber {
+        @apply app-text-secondary;
+    }
+
+    .CodeMirror-cursor {
+        @apply border-l-2 app-text;
+    }
+
+    .CodeMirror-selected {
+        background-color: #dbeafe;
+    }
+
+    .dark .CodeMirror-selected {
+        background-color: #374151;
+    }
+
+    .CodeMirror-activeline-background {
+        background-color: #f3f4f6;
+    }
+
+    .dark .CodeMirror-activeline-background {
+        background-color: #374151;
+    }
+
+    .CodeMirror-matchingbracket {
+        color: #10b981 !important;
+        font-weight: bold;
+    }
+
+    .dark .CodeMirror-matchingbracket {
+        color: #34d399 !important;
+    }
+
+    /* =================================================================
+       SIDEBAR CONVERSATION ITEMS - Chat history styling
+       ================================================================= */
+
+    .conversation-item {
+        @apply px-3 py-2.5 rounded-lg cursor-pointer app-transition;
+        @apply hover:app-surface-secondary active:scale-[0.98];
+    }
+
+    .conversation-item.active {
+        @apply app-surface-secondary border-l-2 border-brand-purple-500;
+    }
+
+    .conversation-item:hover {
+        @apply shadow-sm;
+    }
+
+    /* =================================================================
        MESSAGE LAYOUT - Chat message styling
        ================================================================= */
 

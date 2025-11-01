@@ -5,6 +5,7 @@
  */
 
 import { markdownService } from "../services/markdown-service.js";
+import { renderMermaid } from "./mermaid-helper.js";
 
 // ============================
 // Constants
@@ -23,27 +24,91 @@ const LINE_DELAY = 200; // Delay between line reveals in ms
  * @param {HTMLElement} element - Target container
  * @param {Function} callback - Completion callback
  */
-export function optimizedTypeWriter(elements, text, element, callback) {
+export async function optimizedTypeWriter(elements, text, element, callback) {
   // Inject CSS if not already present
   injectTypewriterCSS();
 
   // Process the markdown first (no need for partial processing)
   const processedHTML = markdownService.processFullMarkdown(text);
+
+  // Place processed HTML into the element but keep it hidden until diagrams
+  // (if any) have rendered. This prevents raw mermaid code from appearing as
+  // text while the diagram renders.
+  element.style.opacity = "0";
   element.innerHTML = processedHTML;
 
-  // Create the animation based on content type
+  // If there are mermaid blocks, render them first and show a loading overlay
+  const mermaidPres = Array.from(element.querySelectorAll('pre[data-mermaid="true"]'));
+  let mermaidPromises = [];
+
+  if (mermaidPres.length > 0) {
+    const overlay = createMermaidLoadingOverlay(element);
+
+    mermaidPromises = mermaidPres.map((pre, idx) => {
+      const code = pre.getAttribute('data-code') || pre.querySelector('code')?.textContent || '';
+      // Hide raw code block until rendered
+      pre.style.display = 'none';
+
+      const diagramContainer = document.createElement('div');
+      diagramContainer.className = 'mermaid-diagram';
+      pre.parentNode.insertBefore(diagramContainer, pre);
+
+      return new Promise((resolve, reject) => {
+        try {
+          renderMermaid(
+            diagramContainer,
+            code,
+            () => resolve({ success: true, pre, diagramContainer }),
+            (err) => reject({ success: false, pre, diagramContainer, err })
+          );
+        } catch (err) {
+          reject({ success: false, pre, diagramContainer, err });
+        }
+      });
+    });
+
+    // Wait for all mermaid renders to settle (resolve or reject)
+    await Promise.allSettled(mermaidPromises).then((results) => {
+      // Remove overlay
+      overlay.remove();
+      results.forEach((r) => {
+        if (r.status === 'rejected') {
+          // Show raw pre block on error
+          try {
+            const payload = r.reason || r;
+            if (payload && payload.pre) payload.pre.style.display = 'block';
+          } catch (e) {
+            console.error('Error revealing pre block after mermaid failure', e);
+          }
+        }
+      });
+    });
+  }
+
+  // Create the animation based on content type and start it now that diagrams are present
   const animationType = detectContentType(text);
 
+  let cleanupFn = null;
   switch (animationType) {
     case "code":
-      return createCodeRevealAnimation(element, callback);
+      cleanupFn = createCodeRevealAnimation(element, callback);
+      break;
     case "list":
-      return createListAnimation(element, callback);
+      cleanupFn = createListAnimation(element, callback);
+      break;
     case "paragraph":
-      return createParagraphAnimation(element, callback);
+      cleanupFn = createParagraphAnimation(element, callback);
+      break;
     default:
-      return createDefaultAnimation(element, callback);
+      cleanupFn = createDefaultAnimation(element, callback);
+      break;
   }
+
+  // Reveal the container (animations handle final visuals)
+  element.style.opacity = "1";
+
+  // Return cleanup function if needed
+  return cleanupFn;
 }
 
 /**
@@ -408,6 +473,37 @@ function injectTypewriterCSS() {
   `;
 
   document.head.appendChild(style);
+}
+
+/**
+ * Create a minimal loading overlay to show while mermaid diagrams render.
+ */
+function createMermaidLoadingOverlay(container) {
+  const overlay = document.createElement('div');
+  overlay.className = 'mermaid-loading-overlay';
+  overlay.innerHTML = `
+    <div class="mermaid-loading-spinner" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 50 50">
+        <circle cx="25" cy="25" r="20" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"></circle>
+        <path d="M45 25a20 20 0 00-20-20" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+      </svg>
+    </div>
+  `;
+
+  // Basic styles to position the overlay
+  overlay.style.position = 'absolute';
+  overlay.style.inset = '0';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.background = 'rgba(255,255,255,0.0)';
+  overlay.style.pointerEvents = 'none';
+  overlay.style.zIndex = '5';
+
+  // Ensure the container can be a positioning context
+  container.style.position = container.style.position || 'relative';
+  container.appendChild(overlay);
+  return overlay;
 }
 
 // ============================

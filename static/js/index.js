@@ -17,6 +17,7 @@ export const elements = {
   connectDbButton: document.getElementById("connect-db"),
   sqlEditorContainer: document.getElementById("sql-editor"),
   executeQueryButton: document.getElementById("execute-query"),
+  sqlEditorToggle: document.getElementById("sql-editor-toggle"),
 
   newConversationBtn: document.getElementById("new-conversation"),
   seeConversationsBtn: document.getElementById("see-conversations"),
@@ -30,6 +31,7 @@ export const elements = {
 
   profileBtn: document.getElementById("profile-btn"),
   profileMenu: document.getElementById("profile-menu"),
+  logoutBtn: document.getElementById("logout-btn"),
   settingsModal: document.getElementById("settings-modal"),
   settingsModalClose: document.getElementById("settings-modal-close"),
 
@@ -46,26 +48,25 @@ export const elements = {
   // 3) We will populate this with the CodeMirror instance shortly
   sqlEditor: null,
 
-  // 4) Shared spinner HTML (used by both “Connect” and “Execute” buttons)
-  LOADING_SPINNER_HTML: `
-    <div class="flex items-center justify-center">
-      <svg class="animate-spin h-4 w-4 md:h-5 md:w-5 mr-2 text-white"
-           xmlns="http://www.w3.org/2000/svg"
-           fill="none"
-           viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8V0
-                 C5.373 0 0 5.373 0 12h4zm2 5.291
-                 A7.963 7.963 0 014 12H0
-                 c0 3.042 1.135 5.824 3 7.938
-                 l3-2.647z"></path>
-      </svg>
-    </div>
-  `,
+  // 4) Helper functions for button loading states
+  setButtonLoading: function(button) {
+    if (!button) return null;
+    button.disabled = true;
+    button.classList.add('button-loading');
+    return button.innerHTML; // Return original HTML for restoration
+  },
+
+  clearButtonLoading: function(button, originalHTML) {
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove('button-loading');
+    if (originalHTML) {
+      button.innerHTML = originalHTML;
+    }
+  },
 
   // 5) *** This is the critical line ***
-  //    Expose `executeSqlString` so that `ui.js` can call it when “Run” is clicked
+  //    Expose `executeSqlString` so that `ui.js` can call it when "Run" is clicked
   executeSqlString: executeSqlString,
 };
 
@@ -73,7 +74,7 @@ export const elements = {
 function initializeCodeMirror() {
   elements.sqlEditor = CodeMirror(elements.sqlEditorContainer, {
     mode: "text/x-sql",
-    theme: "default",
+    theme: "default", // Use default theme, custom CSS will handle theming
     lineNumbers: true,
     autoCloseBrackets: true,
     styleActiveLine: true,
@@ -115,7 +116,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // c)
   initializeEventBindings(elements);
+  
+  // On load, try to fetch databases and restore connection state if server already connected
+  (async () => {
+    try {
+      const resp = await fetch('/db_status');
+      if (resp.ok) {
+        const status = await resp.json();
+        if (status && status.connected) {
+          elements.serverConnected = true;
+          // Populate databases dropdown if returned
+          if (Array.isArray(status.databases) && status.databases.length > 0) {
+            const frag = document.createDocumentFragment();
+            status.databases.forEach((db) => {
+              const opt = document.createElement('option');
+              opt.value = db;
+              opt.textContent = db;
+              frag.appendChild(opt);
+            });
+            elements.databasesDropdown.appendChild(frag);
+          } else {
+            // Fallback: call fetchDatabases to attempt to load databases
+            try {
+              await fetchDatabases(elements);
+            } catch (e) {
+              console.debug('fetchDatabases fallback failed:', e);
+            }
+          }
 
-  // d)
+          // Show disconnect button if present
+          const disconnectBtn = document.getElementById('disconnect-db');
+          if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+        } else {
+          elements.serverConnected = false;
+        }
+      } else {
+        elements.serverConnected = false;
+      }
+    } catch (e) {
+      console.debug('Auto DB status check failed on load:', e);
+      elements.serverConnected = false;
+    }
+  })();
+
+  // Cross-tab sync: react to disconnects from other tabs/windows
+  window.addEventListener('storage', (e) => {
+    try {
+      if (e.key === 'dbDisconnectedAt') {
+        elements.serverConnected = false;
+        elements.databasesDropdown.innerHTML = '';
+        // Update connection status UI
+        if (typeof window.updateConnectionStatus === 'function') {
+          window.updateConnectionStatus(false);
+        }
+      }
+    } catch (err) {
+      console.debug('Storage event handler error:', err);
+    }
+  });
+
+  // d) Initialize the application
   initializeApp(elements);
 });

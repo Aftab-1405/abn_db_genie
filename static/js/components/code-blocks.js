@@ -43,16 +43,30 @@ export function wrapCodeBlocks(textDiv, elements) {
  */
 function applySyntaxHighlighting(codeElement, language) {
   try {
-    if (language && hljs.getLanguage(language)) {
-      const highlighted = hljs.highlight(codeElement.textContent, { language });
-      codeElement.innerHTML = highlighted.value;
-    } else {
-      const highlighted = hljs.highlightAuto(codeElement.textContent);
-      codeElement.innerHTML = highlighted.value;
-    }
+    // Use requestIdleCallback to avoid blocking the main thread when highlighting
+    const doHighlight = () => {
+      try {
+        if (language && hljs.getLanguage(language)) {
+          const highlighted = hljs.highlight(codeElement.textContent, { language });
+          codeElement.innerHTML = highlighted.value;
+        } else {
+          const highlighted = hljs.highlightAuto(codeElement.textContent);
+          codeElement.innerHTML = highlighted.value;
+        }
+        // Add hljs class for proper styling
+        codeElement.classList.add("hljs");
+      } catch (err) {
+        console.error('Syntax highlighting failed in idle callback:', err);
+        codeElement.classList.add('hljs');
+      }
+    };
 
-    // Add hljs class for proper styling
-    codeElement.classList.add("hljs");
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(doHighlight, { timeout: 500 });
+    } else {
+      // Fallback to setTimeout to keep UI responsive on older browsers
+      setTimeout(doHighlight, 50);
+    }
   } catch (e) {
     // Log the error for diagnostics and keep original text if highlighting fails
     console.error("Syntax highlighting error:", e);
@@ -151,6 +165,17 @@ function createRunButton(codeText, elements) {
   `;
   runBtn.title = "Run SQL Query";
   runBtn.setAttribute("aria-label", "Execute SQL query");
+
+  // If the frontend knows the server is not connected, disable the run button
+  try {
+    if (!elements?.serverConnected) {
+      runBtn.disabled = true;
+      runBtn.title = "Disconnected from server";
+      runBtn.classList.add('code-block__button--disabled');
+    }
+  } catch (e) {
+    // ignore
+  }
 
   runBtn.addEventListener("click", async (e) => {
     e.preventDefault();

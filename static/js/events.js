@@ -282,20 +282,64 @@ const populateSchemas = (elements, schemas) => {
   }
 };
 
+// Helper function to update connection status UI - Make it globally available
+window.updateConnectionStatus = function(isConnected, dbName = '') {
+  const connectBtn = document.getElementById('connect-db');
+  const disconnectBtn = document.getElementById('disconnect-db');
+  const statusIndicator = document.getElementById('status-indicator');
+  const statusText = document.getElementById('status-text');
+
+  if (connectBtn && disconnectBtn && statusIndicator && statusText) {
+    if (isConnected) {
+      // Connected to server or database
+      // Connect button stays enabled unless connected to a specific database
+      if (dbName) {
+        // Connected to specific database - disable connect, enable disconnect
+        connectBtn.disabled = true;
+        connectBtn.classList.add('opacity-50');
+        statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse';
+        statusText.textContent = `Connected: ${dbName}`;
+        statusText.className = 'app-text-secondary text-xs';
+      } else {
+        // Connected to server only - keep connect enabled for database selection
+        connectBtn.disabled = false;
+        connectBtn.classList.remove('opacity-50');
+        statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-green-500';
+        statusText.textContent = 'Server connected';
+        statusText.className = 'app-text-secondary text-xs';
+      }
+      disconnectBtn.disabled = false;
+      disconnectBtn.classList.remove('opacity-50');
+    } else {
+      // Disconnected state
+      connectBtn.disabled = false;
+      connectBtn.classList.remove('opacity-50');
+      disconnectBtn.disabled = true;
+      disconnectBtn.classList.add('opacity-50');
+      statusIndicator.className = 'w-1.5 h-1.5 rounded-full bg-gray-400';
+      statusText.textContent = 'Not connected';
+      statusText.className = 'app-text-secondary text-xs';
+    }
+  }
+};
+
 // Helper function to setup database connection modal
 const setupDbConnectionModal = (elements) => {
   const dbModal = document.getElementById("db-connection-modal");
   const dbForm = document.getElementById("db-connection-form");
   const dbCancel = document.getElementById("db-connection-cancel");
 
+  const disconnectBtn = document.getElementById('disconnect-db');
+
   if (!dbModal || !dbForm || !dbCancel) return;
 
-  let serverConnected = false;
+  // Use elements.serverConnected as shared state across the UI
+  if (typeof elements.serverConnected === 'undefined') elements.serverConnected = false;
 
   // Connect to selected database or open modal for credentials
   elements.connectDbButton.addEventListener("click", () => {
     // If not connected to server, open modal for credentials
-    if (!serverConnected || elements.databasesDropdown.options.length === 0) {
+    if (!elements.serverConnected || elements.databasesDropdown.options.length === 0) {
       dbModal.classList.remove("hidden");
       dbModal.classList.add("flex");
     } else {
@@ -326,23 +370,91 @@ const setupDbConnectionModal = (elements) => {
       password: dbForm["password"].value,
     };
 
-    const success = await handleDbConnectionForm(elements, formData);
+    // Show loading state on the submit button and disable inputs to indicate progress
+    const submitBtn = document.getElementById('db-connection-submit');
+    const origHtml = elements.setButtonLoading ? elements.setButtonLoading(submitBtn) : null;
 
-    if (success) {
-      serverConnected = true;
-      dbModal.classList.add("hidden");
-      dbModal.classList.remove("flex");
-      dbForm.reset();
+    // Also disable form inputs during request
+    const inputs = Array.from(dbForm.querySelectorAll('input'));
+    inputs.forEach(i => i.disabled = true);
+
+    let success = false;
+    try {
+      success = await handleDbConnectionForm(elements, formData);
+
+      if (success) {
+        elements.serverConnected = true;
+        dbModal.classList.add("hidden");
+        dbModal.classList.remove("flex");
+        dbForm.reset();
+        // Update connection status UI
+        window.updateConnectionStatus(true);
+      }
+    } finally {
+      // Restore button state and inputs regardless of success/failure
+      if (elements.clearButtonLoading) {
+        elements.clearButtonLoading(submitBtn, origHtml);
+      } else if (submitBtn) {
+        submitBtn.disabled = false;
+        if (origHtml !== null) submitBtn.innerHTML = origHtml;
+      }
+      inputs.forEach(i => i.disabled = false);
     }
   });
+
+  // Disconnect button behavior
+  if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', async () => {
+      const orig = elements.setButtonLoading ? elements.setButtonLoading(disconnectBtn) : null;
+      try {
+        const resp = await fetch('/disconnect_db', { method: 'POST' });
+        const data = await resp.json();
+        if (data?.status === 'success') {
+          elements.serverConnected = false;
+          // Clear dropdown
+          elements.databasesDropdown.innerHTML = '';
+          showNotification(elements, 'Disconnected from database server', 'success');
+          // Update connection status UI
+          window.updateConnectionStatus(false);
+
+          // Inform other tabs (optional): set a localStorage flag to notify other pages
+          try { localStorage.setItem('dbDisconnectedAt', Date.now().toString()); } catch (e) {}
+        } else {
+          showNotification(elements, data?.message || 'Failed to disconnect', 'error');
+        }
+      } catch (err) {
+        console.error('Disconnect error:', err);
+        showNotification(elements, 'Failed to disconnect', 'error');
+      } finally {
+        if (elements.clearButtonLoading) {
+          elements.clearButtonLoading(disconnectBtn, orig);
+        } else {
+          disconnectBtn.disabled = false;
+          if (orig !== null) disconnectBtn.innerHTML = orig;
+        }
+      }
+    });
+  }
 };
 
 // Helper function to setup profile menu
 const setupProfileMenu = (elements) => {
   const toggleProfileMenu = () => {
-    elements.profileMenu.classList.toggle("invisible");
-    elements.profileMenu.classList.toggle("opacity-0");
-    elements.profileMenu.classList.toggle("scale-95");
+    // If menu is invisible, show it with animations
+    if (elements.profileMenu.classList.contains("invisible")) {
+      elements.profileMenu.classList.remove("invisible");
+      // Use requestAnimationFrame to ensure the transition happens
+      requestAnimationFrame(() => {
+        elements.profileMenu.classList.remove("opacity-0", "scale-95", "translate-y-2");
+      });
+    } else {
+      // If menu is visible, hide it with animations
+      elements.profileMenu.classList.add("opacity-0", "scale-95", "translate-y-2");
+      // Wait for transition to complete before making it invisible
+      setTimeout(() => {
+        elements.profileMenu.classList.add("invisible");
+      }, 200); // Match this with your transition duration
+    }
   };
 
   elements.profileBtn.addEventListener("click", toggleProfileMenu);
@@ -357,15 +469,33 @@ const setupProfileMenu = (elements) => {
     elements.profileMenu.classList.add("invisible", "opacity-0", "scale-95");
   });
 
+  // Function to show settings modal with animation
+  const showSettingsModal = () => {
+    elements.settingsModal.classList.remove('invisible');
+    // Use requestAnimationFrame to ensure the transition happens
+    requestAnimationFrame(() => {
+      const modalContent = elements.settingsModal.querySelector('.app-surface-secondary');
+      modalContent.classList.remove('scale-95', 'opacity-0');
+    });
+  };
+
+  // Function to hide settings modal with animation
+  const hideSettingsModal = () => {
+    const modalContent = elements.settingsModal.querySelector('.app-surface-secondary');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    // Wait for animation to complete before hiding
+    setTimeout(() => {
+      elements.settingsModal.classList.add('invisible');
+    }, 300); // Match this with your transition duration
+  };
+
   // Close settings modal via close button
-  elements.settingsModalClose.addEventListener("click", () => {
-    elements.settingsModal.classList.add("invisible");
-  });
+  elements.settingsModalClose.addEventListener("click", hideSettingsModal);
 
   // Close settings modal on outside click
   elements.settingsModal.addEventListener("click", (ev) => {
-    if (!ev.target.closest(".max-w-md")) {
-      elements.settingsModal.classList.add("invisible");
+    if (!ev.target.closest(".app-surface-secondary")) {
+      hideSettingsModal();
     }
   });
 
@@ -378,6 +508,44 @@ const setupProfileMenu = (elements) => {
       elements.profileMenu.classList.add("invisible", "opacity-0", "scale-95");
     }
   });
+
+  // Handle logout
+  if (elements.logoutBtn) {
+    elements.logoutBtn.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+
+      try {
+        // Import Firebase auth dynamically
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js");
+        const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js");
+
+        // Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyCzmz7H7OgKXQplbg1UNMuQ2B4QMwU_FT4",
+          authDomain: "myproject-5216c.firebaseapp.com",
+          projectId: "myproject-5216c",
+          storageBucket: "myproject-5216c.appspot.com",
+          messagingSenderId: "89584435724",
+          appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
+        };
+
+        // Initialize Firebase and sign out
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        await signOut(auth);
+
+        // Clear session on backend
+        await fetch("/logout", { method: "POST" });
+
+        // Redirect to auth page
+        window.location.replace("/auth");
+      } catch (error) {
+        console.error("Logout error:", error);
+        showNotification(elements, "Failed to logout. Please try again.", "error");
+      }
+    });
+  }
 };
 
 // Helper function to setup input handling
@@ -411,15 +579,17 @@ const setupSqlQueryExecution = (elements) => {
     const sqlQ = elements.sqlEditor.getValue();
     if (!sqlQ) return;
 
-    const orig = elements.executeQueryButton.innerHTML;
-    elements.executeQueryButton.disabled = true;
-    elements.executeQueryButton.innerHTML = elements.LOADING_SPINNER_HTML;
+    const orig = elements.setButtonLoading ? elements.setButtonLoading(elements.executeQueryButton) : null;
 
     try {
       await executeSqlString(elements, sqlQ);
     } finally {
-      elements.executeQueryButton.innerHTML = orig;
-      elements.executeQueryButton.disabled = false;
+      if (elements.clearButtonLoading) {
+        elements.clearButtonLoading(elements.executeQueryButton, orig);
+      } else {
+        elements.executeQueryButton.disabled = false;
+        if (orig !== null) elements.executeQueryButton.innerHTML = orig;
+      }
     }
   });
 
@@ -721,9 +891,12 @@ const createConversationItem = (elements, conv) => {
   wrapper.appendChild(deleteButton);
   conversationItem.appendChild(wrapper);
 
-  // Conversation click handler
-  contentDiv.addEventListener("click", (ev) => {
+  // Conversation click handler (attach to the whole item so clicks anywhere
+  // on the row -- not only the text area -- trigger loading)
+  conversationItem.addEventListener("click", (ev) => {
     ev.preventDefault();
+    // Ignore clicks that originated from the delete button
+    if (ev.target.closest('.delete-conversation-btn')) return;
     loadConversation(elements, conv.id);
     highlightSelectedConversation(conversationItem);
   });
@@ -939,6 +1112,13 @@ const createNewConversationPreview = (
   // Insert at top
   conversationListContainer.prepend(conversationItem);
   animateConversationItem(conversationItem, true);
+  // Make the whole conversation item clickable (newly created previews)
+  conversationItem.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    if (ev.target.closest('.delete-conversation-btn')) return;
+    loadConversation(elements, conversationId);
+    highlightSelectedConversation(conversationItem);
+  });
 };
 
 // Load a specific conversation thread

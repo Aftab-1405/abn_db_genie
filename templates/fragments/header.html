@@ -31,17 +31,32 @@
         <!-- Profile & Settings with consistent sizing -->
         <div class="relative min-w-0">
             <button id="profile-btn"
-                class="app-button flex items-center justify-center p-0.5 h-10 w-10 rounded-full has-tooltip"
+                class="app-button flex items-center justify-center p-0.5 h-10 w-10 rounded-full has-tooltip relative hover:ring-2 hover:ring-purple-500/50 transition-all duration-200"
                 data-tooltip="Profile">
                 <!-- Consistent sizing with SQL editor button -->
-                <img src="/static/images/user.png" alt="User Profile" class="w-6 h-6 rounded-full object-cover"
-                    loading="eager" width="24" height="24">
+                <img src="/static/images/user.png" alt="User Profile"
+                    class="w-6 h-6 rounded-full object-cover ring-2 ring-purple-500" loading="eager" width="24"
+                    height="24">
             </button>
             <div id="profile-menu"
-                class="absolute w-48 md:w-52 h-24 md:h-28 p-2 right-0 mt-2 app-surface shadow-depth-3 rounded-md opacity-0 app-transition origin-top-right transform z-10 invisible">
-                <div class="py-1">
-                    <a href="#" class="flex items-center px-4 py-2 text-sm md:text-base app-text app-button rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2" viewBox="0 0 20 20"
+                class="absolute w-56 md:w-64 right-0 mt-2 app-surface-secondary border app-border rounded-xl opacity-0 app-transition origin-top-right transform z-10 invisible backdrop-blur-sm shadow-glass-strong">
+                <!-- User Info Section -->
+                <div class="p-4 border-b app-border">
+                    <div class="flex items-center space-x-3">
+                        <img src="/static/images/user.png" alt="User Profile"
+                            class="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500" loading="eager"
+                            width="40" height="40">
+                        <div>
+                            <div class="app-text font-semibold text-sm">Guest User</div>
+                            <div class="app-text-secondary text-xs">guest@example.com</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Menu Items -->
+                <div class="p-2">
+                    <a href="#"
+                        class="flex items-center px-4 py-2.5 text-sm app-text hover:bg-purple-500/10 rounded-lg transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-3" viewBox="0 0 20 20"
                             fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
@@ -49,8 +64,10 @@
                         </svg>
                         Settings
                     </a>
-                    <a href="#" class="flex items-center px-4 py-2 text-sm md:text-base app-text app-button rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2" viewBox="0 0 20 20"
+                    <div class="h-px my-1.5 app-border"></div>
+                    <a href="#" id="logout-btn"
+                        class="flex items-center px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-3" viewBox="0 0 20 20"
                             fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 10l-1.293 1.293z"

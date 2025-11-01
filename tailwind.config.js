@@ -145,6 +145,14 @@ module.exports = {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-6px)" },
         },
+        "border-run": {
+          "0%, 100%": {
+            backgroundPosition: "0% 50%",
+          },
+          "50%": {
+            backgroundPosition: "100% 50%",
+          },
+        },
       },
 
       animation: {
@@ -155,6 +163,7 @@ module.exports = {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         float: "float 3s ease-in-out infinite",
         "float-delayed": "float 3s ease-in-out 1.5s infinite",
+        "border-run": "border-run 1.5s linear infinite",
       },
 
       spacing: {
@@ -393,9 +402,13 @@ module.exports = {
     "ai-thinking-modern",
     "thinking-particle",
 
+    // Sidebar components
+    "conversation-item",
+
     // Effects and animations
     "glass-effect",
     "gradient-text",
+    "button-loading",
     "animate-slide-in-right",
     "animate-fade-in-up",
     "animate-bounce-subtle",
@@ -403,6 +416,7 @@ module.exports = {
     "animate-pulse-glow",
     "animate-float",
     "animate-float-delayed",
+    "animate-border-run",
 
     // Notifications
     "notification-enter",

@@ -53,8 +53,13 @@ def pass_userinput_to_gemini():
             # Store the complete conversation in Firestore after streaming
             FirestoreService.store_conversation(conversation_id, 'ai', "".join(full_response_content), user_id)
 
-        # Attach the conversation id as a response header so clients can persist it when streaming
-        headers = {'X-Conversation-Id': conversation_id}
+        # Attach helpful headers to encourage immediate streaming through proxies
+        headers = {
+            'X-Conversation-Id': conversation_id,
+            'Cache-Control': 'no-cache, no-transform',
+            # Some reverse proxies buffer streamed responses; this header helps disable that behavior
+            'X-Accel-Buffering': 'no'
+        }
         return Response(generate(), mimetype='text/plain', headers=headers)
     except Exception as e:
         logger.error(f'Error querying Gemini: {e}')
@@ -208,6 +213,75 @@ def run_sql_query():
         GeminiService.notify_gemini(conversation_id, notify_msg)
     
     return jsonify(result)
+
+
+@api_bp.route('/disconnect_db', methods=['POST'])
+def disconnect_db():
+    """Disconnect the server-side DB connection pool and thread-local connections."""
+    try:
+        from database.connection import close_all_connections
+        from database.operations import DatabaseOperations
+
+        close_all_connections()
+        # Clear any cached DB metadata so UI cannot operate on stale data after disconnect
+        try:
+            DatabaseOperations.clear_cache()
+        except Exception:
+            logger.debug('Failed to clear DatabaseOperations cache after disconnect')
+        return jsonify({'status': 'success', 'message': 'Disconnected from database server.'})
+    except Exception as e:
+        logger.exception('Error disconnecting DB')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@api_bp.route('/db_status', methods=['GET'])
+def db_status():
+    """Return whether a DB connection pool exists and optionally the list of databases.
+
+    This endpoint is intended for UI autodiscovery on page load. It will not
+    expose credentials; only high-level connection state and an optional list
+    of user databases (names) when available.
+    """
+    try:
+        from database import connection as db_connection
+        # Quick check: if a connection pool exists and a thread-local connection
+        # is live, we consider the server connected.
+        pool_exists = getattr(db_connection, '_connection_pool', None) is not None
+        thread_conn_alive = False
+        try:
+            if hasattr(db_connection.thread_local, 'connection'):
+                thread_conn_alive = bool(db_connection.thread_local.connection.is_connected())
+        except Exception:
+            thread_conn_alive = False
+
+        connected = pool_exists or thread_conn_alive
+
+        result = {'status': 'ok', 'connected': bool(connected)}
+
+        # If connected, attempt to retrieve the database list (non-fatal)
+        if connected:
+            try:
+                from database.operations import get_databases
+                dbs = get_databases()
+                if isinstance(dbs, dict) and dbs.get('status') == 'success':
+                    result['databases'] = dbs.get('databases', [])
+                else:
+                    result['databases'] = []
+            except Exception as e:
+                logger.debug('db_status: failed to fetch databases: %s', e)
+                result['databases'] = []
+
+        # Provide current selected database name if present (do not expose secrets)
+        try:
+            current_db = db_connection.get_current_db_name()
+            result['current_database'] = current_db
+        except Exception:
+            result['current_database'] = None
+
+        return jsonify(result)
+    except Exception as e:
+        logger.exception('Error while checking DB status')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_bp.route('/delete_conversation/<conversation_id>', methods=['DELETE'])
 @login_required

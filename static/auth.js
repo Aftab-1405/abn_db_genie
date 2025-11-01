@@ -76,9 +76,9 @@ async function setSession(userEmail) {
 
     const data = await response.json();
     if (data.status === "success") {
-      // Delay slightly for UX, then redirect to homepage
+      // Delay slightly for UX, then redirect to homepage using replace to prevent back navigation
       setTimeout(() => {
-        window.location.href = "/index";
+        window.location.replace("/index");
       }, 2000);
     } else {
       showNotification("Failed to set session");
