@@ -8,6 +8,7 @@ import {
 } from "./ui.js";
 import { sendUserInput } from "./chat.js";
 import toastManager from "./utils/toast.js";
+import { initQueryHistory } from "./utils/query-history.js";
 
 // Reusable API response handler with error notification
 const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
@@ -697,6 +698,13 @@ export function initializeEventBindings(elements) {
   setupProfileMenu(elements);
   setupInputHandling(elements);
   setupSqlQueryExecution(elements);
+
+  // Initialize query history
+  try {
+    elements.queryHistoryAPI = initQueryHistory(elements);
+  } catch (error) {
+    console.warn('Failed to initialize query history:', error);
+  }
 
   // Start a new conversation
   elements.newConversationBtn.addEventListener("click", async () => {

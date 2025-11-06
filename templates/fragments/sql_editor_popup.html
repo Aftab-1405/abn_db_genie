@@ -1,6 +1,6 @@
-<!-- Enhanced SQL Editor Popup -->
+<!-- Enhanced SQL Editor Popup with Query History -->
 <div id="sql-editor-popup"
-    class="fixed top-16 bottom-16 right-2 sm:right-4 w-full sm:w-3/4 lg:w-1/4 app-surface-secondary app-border border rounded-xl shadow-glass-strong z-30 app-transition-slow flex flex-col translate-x-full opacity-0 pointer-events-none invisible backdrop-blur-sm">
+    class="fixed top-16 bottom-16 right-2 sm:right-4 w-full sm:w-3/4 lg:w-2/5 app-surface-secondary app-border border rounded-xl shadow-glass-strong z-30 app-transition-slow flex flex-col translate-x-full opacity-0 pointer-events-none invisible backdrop-blur-sm">
 
     <!-- SQL Editor Header with Enhanced Design -->
     <div
@@ -15,9 +15,18 @@
 
         <!-- Right side - Enhanced Icon Action buttons -->
         <div class="flex items-center gap-1 flex-shrink-0">
+            <!-- History Toggle Button -->
+            <button id="toggle-history-btn"
+                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full has-tooltip"
+                data-tooltip="Query History">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+
             <!-- Execute Button -->
             <button id="execute-query"
-                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full border-0 bg-green-600 hover:bg-green-700 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
+                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full border-0 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
                 data-tooltip="Run (Ctrl+Enter)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
                     viewBox="0 0 24 24" fill="currentColor">
@@ -27,7 +36,7 @@
 
             <!-- Close Button -->
             <button id="sql-editor-close"
-                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full border-0 bg-red-600 hover:bg-red-700 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
+                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full border-0 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
                 data-tooltip="Close">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
                     viewBox="0 0 24 24" fill="currentColor">
@@ -39,38 +48,60 @@
         </div>
     </div>
 
-    <!-- SQL Editor Content Area -->
-    <div class="sql-editor-content flex-1 flex flex-col min-h-0">
-        <!-- Main Editor Area -->
-        <div class="flex-1 p-0 min-h-0 app-surface">
-            <div id="sql-editor-container"
-                class="relative h-full overflow-hidden app-surface shadow-none bg-transparent app-scrollbar">
-                <div id="sql-editor"
-                    class="h-full p-3 app-text font-mono text-sm overflow-auto leading-relaxed bg-transparent app-scrollbar">
-                    <!-- CodeMirror will be initialized here -->
+    <!-- SQL Editor Content Area with History Sidebar -->
+    <div class="sql-editor-content flex-1 flex min-h-0">
+
+        <!-- Query History Sidebar (Collapsible) -->
+        <div id="query-history-sidebar" class="hidden w-64 app-surface-secondary border-r app-border flex-shrink-0 flex flex-col">
+            <div class="p-3 border-b app-border">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-semibold app-text">Query History</h3>
+                    <button id="clear-history-btn" class="text-xs app-text-secondary hover:app-text transition-colors">
+                        Clear
+                    </button>
+                </div>
+                <p class="text-xs app-text-secondary">Last 20 queries</p>
+            </div>
+            <div id="query-history-list" class="flex-1 overflow-y-auto app-scrollbar p-2 space-y-1">
+                <!-- History items will be populated here -->
+                <div class="text-xs app-text-secondary text-center py-8">
+                    No query history yet
                 </div>
             </div>
         </div>
 
-        <!-- Enhanced Status Bar -->
-        <div class="px-3 py-2 app-border border-t app-surface rounded-b-xl shadow-depth-1">
-            <div class="flex items-center justify-between text-xs app-text-secondary">
-                <!-- Status indicators -->
-                <div class="flex items-center gap-2">
-                    <div class="flex items-center gap-1">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span class="hidden sm:inline">Ready</span>
+        <!-- Main Editor Area -->
+        <div class="flex-1 flex flex-col min-h-0">
+            <div class="flex-1 p-0 min-h-0 app-surface">
+                <div id="sql-editor-container"
+                    class="relative h-full overflow-hidden app-surface shadow-none bg-transparent app-scrollbar">
+                    <div id="sql-editor"
+                        class="h-full p-3 app-text font-mono text-sm overflow-auto leading-relaxed bg-transparent app-scrollbar">
+                        <!-- CodeMirror will be initialized here -->
                     </div>
                 </div>
+            </div>
 
-                <!-- Keyboard shortcut -->
-                <div class="flex items-center gap-1 sm:gap-2 font-medium flex-shrink-0">
-                    <kbd
-                        class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Ctrl</kbd>
-                    <span class="hidden sm:inline app-text-tertiary">+</span>
-                    <kbd
-                        class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Enter</kbd>
-                    <span class="ml-2 hidden sm:inline app-text-tertiary">Run</span>
+            <!-- Enhanced Status Bar -->
+            <div class="px-3 py-2 app-border border-t app-surface shadow-depth-1">
+                <div class="flex items-center justify-between text-xs app-text-secondary">
+                    <!-- Status indicators -->
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <div class="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></div>
+                            <span class="hidden sm:inline">Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Keyboard shortcut -->
+                    <div class="flex items-center gap-1 sm:gap-2 font-medium flex-shrink-0">
+                        <kbd
+                            class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Ctrl</kbd>
+                        <span class="hidden sm:inline app-text-tertiary">+</span>
+                        <kbd
+                            class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Enter</kbd>
+                        <span class="ml-2 hidden sm:inline app-text-tertiary">Run</span>
+                    </div>
                 </div>
             </div>
         </div>

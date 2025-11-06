@@ -83,6 +83,9 @@ export async function executeSqlString(elements, sqlText) {
     toastManager.error('Not connected to any database server');
     return;
   }
+
+  let queryStatus = 'error'; // Track query status for history
+
   try {
     const resp = await fetch("/run_sql_query", {
       method: "POST",
@@ -96,6 +99,7 @@ export async function executeSqlString(elements, sqlText) {
 
     if (data.status === "success" && data.result) {
       const { fields, rows } = data.result;
+      queryStatus = 'success';
       // renderQueryResults already shows success toast, don't duplicate
       renderQueryResults(elements, fields, rows);
     } else {
@@ -105,5 +109,10 @@ export async function executeSqlString(elements, sqlText) {
   } catch (error) {
     console.error('Query execution error:', error);
     toastManager.error("Network error: Failed to execute query");
+  } finally {
+    // Add query to history
+    if (elements.queryHistoryAPI) {
+      elements.queryHistoryAPI.addQuery(sqlText, queryStatus);
+    }
   }
 }
