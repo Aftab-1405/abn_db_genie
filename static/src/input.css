@@ -2,7 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    /* Typography improvements */
+    body {
+        @apply text-base leading-relaxed;
+        font-feature-settings: "kern" 1, "liga" 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-semibold tracking-tight;
+    }
+
+    /* Better focus outlines */
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+        @apply outline-none ring-2 ring-offset-2;
+    }
+}
+
 @layer components {
+    /* Enhanced input styling */
+    .app-input {
+        @apply transition-all duration-200;
+    }
+
+    .app-input:focus {
+        @apply ring-2 ring-offset-1;
+    }
     /* =================================================================
        BUTTON LOADING - Running light border animation
        ================================================================= */

@@ -41,15 +41,16 @@ export function addMessage(elements, content, sender) {
   textDiv.className = `message__content chat-prose`;
   messageWrapper.appendChild(textDiv);
 
+  // ALWAYS create content wrapper (even if empty) for consistent styling
+  const contentWrapper = document.createElement("div");
+  contentWrapper.className = "content-wrapper";
+  textDiv.appendChild(contentWrapper);
+
   // Process content if provided
   if (content) {
-    const contentWrapper = document.createElement("div");
-    contentWrapper.className = "content-wrapper";
-
     // Process markdown
     const processedContent = markdownService.processFullMarkdown(content);
     contentWrapper.innerHTML = processedContent;
-    textDiv.appendChild(contentWrapper);
 
     // Add interactive functionality to code blocks after a small delay
     requestAnimationFrame(() => {
@@ -66,7 +67,7 @@ export function addMessage(elements, content, sender) {
   });
 
   scrollToBottom(elements);
-  return { messageWrapper, textDiv, avatar };
+  return { messageWrapper, textDiv, avatar, contentWrapper };
 }
 
 /**
@@ -119,8 +120,8 @@ export function appendGenieStreamChunk(elements, genieMessageElements, chunk) {
  * Add AI response with typing effect - simplified
  */
 export function addGenieResponseWithTypingEffect(elements, responseText) {
-  // Add empty message bubble first
-  const { messageWrapper, textDiv, avatar } = addMessage(elements, "", "ai");
+  // Add empty message bubble first (contentWrapper is created inside)
+  const { messageWrapper, textDiv, avatar, contentWrapper } = addMessage(elements, "", "ai");
   if (!messageWrapper) return;
 
   // Start thinking animation
@@ -129,19 +130,15 @@ export function addGenieResponseWithTypingEffect(elements, responseText) {
   setTimeout(() => {
     thinkingAnimation.stop();
 
-    // Create content container
-    const contentContainer = document.createElement("div");
-    contentContainer.className = "content-wrapper";
-    textDiv.appendChild(contentContainer);
-
+    // Use the contentWrapper that was already created in addMessage
     // Start typewriter effect
-    optimizedTypeWriter(elements, responseText, contentContainer, () => {
+    optimizedTypeWriter(elements, responseText, contentWrapper, () => {
       // Cleanup and finalize
       markdownService.clearPartialCache();
 
       // Process code blocks after typing is complete
       setTimeout(() => {
-        wrapCodeBlocks(contentContainer, elements);
+        wrapCodeBlocks(contentWrapper, elements);
         scrollToBottom(elements);
       }, 100);
     });
