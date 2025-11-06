@@ -781,6 +781,8 @@ export function initializeEventBindings(elements) {
 
 // Fetch and render past conversations in the sidebar
 export async function fetchAndDisplayConversations(elements) {
+  console.log('[Conversations] Fetching conversations...');
+
   // Show loading state
   const noConversationsMessage = document.getElementById(
     "no-conversations-message"
@@ -796,10 +798,14 @@ export async function fetchAndDisplayConversations(elements) {
     elements
   );
 
+  console.log('[Conversations] Received data:', data);
+
   if (data) {
+    console.log('[Conversations] Number of conversations:', data.conversations?.length);
     populateConversations(elements, data.conversations);
   } else if (noConversationsMessage) {
     // Handle error state
+    console.error('[Conversations] Failed to load conversations');
     noConversationsMessage.textContent = "Failed to load conversations";
     noConversationsMessage.style.display = "block";
   }
@@ -922,17 +928,22 @@ const handleEmptyConversationList = () => {
 
 // Create conversation entries for the sidebar
 function populateConversations(elements, conversations) {
+  console.log('[Conversations] Populating conversations, count:', conversations?.length);
+
   const conversationListContainer =
     elements.conversationList || document.getElementById("conversation-list");
   const noConversationsMessage = document.getElementById(
     "no-conversations-message"
   );
 
+  console.log('[Conversations] Container element:', conversationListContainer);
+
   // Clear existing content
   conversationListContainer.innerHTML = "";
 
   if (!conversations?.length) {
     // Show no conversations message
+    console.log('[Conversations] No conversations to display');
     const emptyMessage = document.createElement("div");
     emptyMessage.id = "no-conversations-message";
     emptyMessage.className =
@@ -955,6 +966,7 @@ function populateConversations(elements, conversations) {
   });
 
   conversationListContainer.appendChild(frag);
+  console.log('[Conversations] Conversations populated. Container children:', conversationListContainer.children.length);
 }
 
 // Helper function to create a conversation item

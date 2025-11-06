@@ -36,6 +36,8 @@ class SidebarTabs {
    * Switch to a specific tab
    */
   switchTab(tabName, saveToStorage = true) {
+    console.log('[SidebarTabs] Switching to tab:', tabName);
+
     // Remove active class from all tabs and contents
     this.tabs.forEach(tab => tab.classList.remove('active'));
     this.tabContents.forEach(content => content.classList.remove('active'));
@@ -44,10 +46,15 @@ class SidebarTabs {
     const selectedTab = document.querySelector(`.sidebar-tab[data-tab="${tabName}"]`);
     const selectedContent = document.getElementById(`tab-content-${tabName}`);
 
+    console.log('[SidebarTabs] Selected tab element:', selectedTab);
+    console.log('[SidebarTabs] Selected content element:', selectedContent);
+
     if (selectedTab && selectedContent) {
       selectedTab.classList.add('active');
       selectedContent.classList.add('active');
       this.activeTab = tabName;
+
+      console.log('[SidebarTabs] Active classes added. Content classes:', selectedContent.className);
 
       // Save to localStorage for persistence
       if (saveToStorage) {
@@ -58,6 +65,8 @@ class SidebarTabs {
       if (tabName === 'database') {
         this.updateDatabaseEmptyState();
       }
+    } else {
+      console.error('[SidebarTabs] Could not find tab or content for:', tabName);
     }
   }
 
