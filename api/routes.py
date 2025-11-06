@@ -4,7 +4,14 @@
 from flask import Blueprint, render_template, request, jsonify, session, Response
 from auth.decorators import login_required
 from database.operations import get_databases, fetch_database_info, execute_sql_query
-from database.connection import update_db_config, get_current_db_name, get_executor
+from database.session_utils import (
+    set_db_config_in_session,
+    update_database_in_session,
+    get_current_database,
+    get_db_connection,
+    clear_db_config_from_session,
+    close_user_pool
+)
 from services.gemini_service import GeminiService
 from services.firestore_service import FirestoreService
 import uuid
@@ -123,72 +130,62 @@ def connect_db():
     return jsonify({'status': 'error', 'message': 'All fields are required for server connection, or db_name for database selection.'})
 
 
-def _reset_db_connection_pool(db_connection):
-    """Reset the module-level connection pool and any thread-local connection."""
-    # Reset pool and thread-local connection
-    with db_connection._pool_lock:
-        if db_connection._connection_pool:
-            try:
-                db_connection._connection_pool._remove_connections()
-            except Exception as e:
-                logger.debug('Failed to remove connections from pool: %s', e)
-        db_connection._connection_pool = None
-
-    if hasattr(db_connection.thread_local, 'connection'):
-        try:
-            db_connection.thread_local.connection.close()
-        except Exception as e:
-            logger.debug('Failed to close thread-local connection: %s', e)
-        try:
-            delattr(db_connection.thread_local, 'connection')
-        except Exception:
-            # ignore if attribute already removed
-            pass
-
-
 def _handle_server_connection(host, port, user, password):
-    """Apply new server config, reset state, test connection and return schemas."""
-    from database import connection as db_connection
-    # Clear any cached DB metadata so subsequent get_databases() call returns
-    # fresh results for the newly-configured server.
+    """
+    Connect to database server and store config in session.
+    Multi-user safe: Each user's config is isolated in their session.
+    """
+    # Clear any cached DB metadata from previous connections
     try:
         from database.operations import DatabaseOperations
         DatabaseOperations.clear_cache()
     except Exception:
-        # Non-fatal: proceed even if cache clear fails
         logger.debug('Failed to clear DatabaseOperations cache before applying new server config')
-    # Update config
-    db_connection.db_config.update({
-        'host': host,
-        'port': int(port),
-        'user': user,
-        'password': password
-    })
 
-    _reset_db_connection_pool(db_connection)
+    # Store config in session (per-user isolation)
+    set_db_config_in_session(host, int(port), user, password)
 
     # Test connection and fetch schemas
     try:
-        conn = db_connection.get_db_connection()
+        conn = get_db_connection()
         if conn.is_connected():
             from database.operations import get_databases as _get_databases
             dbs_result = _get_databases()
             if dbs_result.get('status') == 'success':
-                return jsonify({'status': 'connected', 'message': 'Connected to database server at {host}:{port}'.format(host=host, port=port), 'schemas': dbs_result['databases']})
-            return jsonify({'status': 'connected', 'message': 'Connected, but failed to fetch schemas', 'schemas': []})
+                logger.info(f"User connected to database server {host}:{port} with {len(dbs_result.get('databases', []))} databases")
+                return jsonify({
+                    'status': 'connected',
+                    'message': f'Connected to database server at {host}:{port}',
+                    'schemas': dbs_result['databases']
+                })
+            return jsonify({
+                'status': 'connected',
+                'message': 'Connected, but failed to fetch schemas',
+                'schemas': []
+            })
         return jsonify({'status': 'error', 'message': 'Failed to connect to the database server.'})
     except Exception as err:
         logger.exception('Error while testing DB connection')
+        # Clear config from session if connection failed
+        clear_db_config_from_session()
         return jsonify({'status': 'error', 'message': str(err)})
 
 
 def _handle_db_selection(db_name, conversation_id=None):
-    """Select a database, fetch its info, and notify Gemini services."""
-    from database.connection import update_db_config
+    """
+    Select a database and store in session.
+    Multi-user safe: Each user's database selection is isolated in their session.
+    """
     from database.operations import fetch_database_info
     from services.gemini_service import GeminiService
 
-    update_db_config(db_name)
+    # Update database in session
+    try:
+        update_database_in_session(db_name)
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+    # Fetch database info and notify Gemini
     try:
         db_info, detailed_info = fetch_database_info(db_name)
         conversation_id = session.get('conversation_id', conversation_id)
@@ -196,7 +193,9 @@ def _handle_db_selection(db_name, conversation_id=None):
             GeminiService.notify_gemini(conversation_id, db_info)
         if detailed_info and detailed_info.strip():
             GeminiService.notify_gemini(conversation_id, detailed_info)
-        return jsonify({'status': 'connected', 'message': 'Connected to database {db}'.format(db=db_name)})
+
+        logger.info(f"User selected database: {db_name}")
+        return jsonify({'status': 'connected', 'message': f'Connected to database {db_name}'})
     except Exception as err:
         logger.exception('Error while selecting database %s', db_name)
         return jsonify({'status': 'error', 'message': str(err)})
@@ -206,11 +205,11 @@ def run_sql_query():
     data = request.get_json()
     sql_query = data['sql_query']
     conversation_id = session.get('conversation_id')
-    
+
     result = execute_sql_query(sql_query)
-    
+
     # Notify Gemini about the query execution
-    db_name = get_current_db_name()
+    db_name = get_current_database()  # Uses session-based config
     if result['status'] == 'success':
         if 'result' in result:  # SELECT query
             notify_msg = f'SELECT query executed on {db_name}. Retrieved {result["row_count"]} rows.'
@@ -220,23 +219,32 @@ def run_sql_query():
     else:
         notify_msg = f'Error executing query on {db_name}: {result["message"]}. Query: {sql_query}'
         GeminiService.notify_gemini(conversation_id, notify_msg)
-    
+
     return jsonify(result)
 
 
 @api_bp.route('/disconnect_db', methods=['POST'])
 def disconnect_db():
-    """Disconnect the server-side DB connection pool and thread-local connections."""
+    """
+    Disconnect user's database connection pool and clear session config.
+    Multi-user safe: Only affects the current user's pool and session.
+    """
     try:
-        from database.connection import close_all_connections
         from database.operations import DatabaseOperations
 
-        close_all_connections()
-        # Clear any cached DB metadata so UI cannot operate on stale data after disconnect
+        # Close this user's connection pool
+        closed = close_user_pool()
+
+        # Clear database config from session
+        clear_db_config_from_session()
+
+        # Clear any cached DB metadata
         try:
             DatabaseOperations.clear_cache()
         except Exception:
             logger.debug('Failed to clear DatabaseOperations cache after disconnect')
+
+        logger.info(f"User disconnected from database (pool closed: {closed})")
         return jsonify({'status': 'success', 'message': 'Disconnected from database server.'})
     except Exception as e:
         logger.exception('Error disconnecting DB')
@@ -245,12 +253,14 @@ def disconnect_db():
 
 @api_bp.route('/get_tables', methods=['GET'])
 def get_tables():
-    """Get all tables in the currently selected database."""
+    """Get all tables in the currently selected database.
+
+    Multi-user safe: Uses session-based database selection.
+    """
     try:
         from database.operations import DatabaseOperations
-        from database.connection import get_current_db_name
 
-        db_name = get_current_db_name()
+        db_name = get_current_database()  # Uses session-based config
         if not db_name:
             return jsonify({'status': 'error', 'message': 'No database selected'}), 400
 
@@ -263,10 +273,12 @@ def get_tables():
 
 @api_bp.route('/get_table_schema', methods=['POST'])
 def get_table_schema_route():
-    """Get schema information for a specific table."""
+    """Get schema information for a specific table.
+
+    Multi-user safe: Uses session-based database selection.
+    """
     try:
         from database.operations import DatabaseOperations
-        from database.connection import get_current_db_name
 
         data = request.get_json()
         table_name = data.get('table_name')
@@ -274,7 +286,7 @@ def get_table_schema_route():
         if not table_name:
             return jsonify({'status': 'error', 'message': 'Table name is required'}), 400
 
-        db_name = get_current_db_name()
+        db_name = get_current_database()  # Uses session-based config
         if not db_name:
             return jsonify({'status': 'error', 'message': 'No database selected'}), 400
 
@@ -294,25 +306,19 @@ def get_table_schema_route():
 
 @api_bp.route('/db_status', methods=['GET'])
 def db_status():
-    """Return whether a DB connection pool exists and optionally the list of databases.
+    """Return whether a DB connection exists and optionally the list of databases.
 
     This endpoint is intended for UI autodiscovery on page load. It will not
     expose credentials; only high-level connection state and an optional list
     of user databases (names) when available.
+
+    Multi-user safe: Checks the current user's session for database configuration.
     """
     try:
-        from database import connection as db_connection
-        # Quick check: if a connection pool exists and a thread-local connection
-        # is live, we consider the server connected.
-        pool_exists = getattr(db_connection, '_connection_pool', None) is not None
-        thread_conn_alive = False
-        try:
-            if hasattr(db_connection.thread_local, 'connection'):
-                thread_conn_alive = bool(db_connection.thread_local.connection.is_connected())
-        except Exception:
-            thread_conn_alive = False
+        from database.session_utils import is_db_configured, is_database_selected
 
-        connected = pool_exists or thread_conn_alive
+        # Check if user has database configuration in their session
+        connected = is_db_configured()
 
         result = {'status': 'ok', 'connected': bool(connected)}
 
@@ -331,7 +337,7 @@ def db_status():
 
         # Provide current selected database name if present (do not expose secrets)
         try:
-            current_db = db_connection.get_current_db_name()
+            current_db = get_current_database()  # Uses session-based config
             result['current_database'] = current_db
         except Exception:
             result['current_database'] = None
@@ -347,22 +353,31 @@ def db_heartbeat():
 
     Returns minimal connection status without fetching databases.
     Used by frontend for periodic connection health checks.
+
+    Multi-user safe: Checks the current user's session-based connection.
     """
     try:
-        from database import connection as db_connection
+        from database.session_utils import is_db_configured
 
-        # Try to ping the connection
+        # Check if user has database configuration in their session
+        if not is_db_configured():
+            return jsonify({
+                'status': 'ok',
+                'connected': False,
+                'timestamp': __import__('time').time()
+            })
+
+        # Try to ping the connection using user's session config
         connected = False
         try:
-            if hasattr(db_connection.thread_local, 'connection'):
-                conn = db_connection.thread_local.connection
-                if conn.is_connected():
-                    # Perform a lightweight query to verify connection
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT 1")
-                    cursor.fetchone()
-                    cursor.close()
-                    connected = True
+            conn = get_db_connection()  # Uses session-based config
+            if conn and conn.is_connected():
+                # Perform a lightweight query to verify connection
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+                cursor.close()
+                connected = True
         except Exception as e:
             logger.debug(f'Heartbeat check failed: {e}')
             connected = False

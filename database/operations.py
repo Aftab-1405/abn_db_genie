@@ -1,7 +1,9 @@
-"""Optimized secure database operations and queries - READ-ONLY VERSION"""
+"""Optimized secure database operations and queries - READ-ONLY VERSION
+Multi-user support: Uses session-based database configuration.
+"""
 
 import mysql.connector
-from database.connection import get_cursor
+from database.session_utils import get_db_cursor, get_current_database, is_database_selected
 from database.security import DatabaseSecurity
 import logging
 import time
@@ -12,6 +14,9 @@ import threading
 from config import Config
 
 logger = logging.getLogger(__name__)
+
+# Alias for backward compatibility
+get_cursor = get_db_cursor
 
 
 class DatabaseOperationError(Exception):
