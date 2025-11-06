@@ -23,6 +23,22 @@
                 READ-ONLY
             </span>
         </div>
+
+        <!-- Database Connection Status Widget -->
+        <div id="db-connection-status" class="ml-3 hidden sm:flex items-center">
+            <div id="db-status-disconnected" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>
+                Not Connected
+            </div>
+            <div id="db-status-connected" class="hidden items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-300 dark:border-green-700 cursor-pointer hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors has-tooltip"
+                 data-tooltip="Click to view connection details">
+                <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                </svg>
+                <span id="db-status-name" class="font-semibold"></span>
+            </div>
+        </div>
     </div>
 
     <!-- SQL Editor Icon & Profile with consistent sizing and alignment -->

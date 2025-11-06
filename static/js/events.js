@@ -301,6 +301,12 @@ window.updateConnectionStatus = function(isConnected, dbName = '') {
   const statusText = document.getElementById('status-text');
   const dbDropdown = document.getElementById('databases');
 
+  // Header status widgets
+  const headerDisconnected = document.getElementById('db-status-disconnected');
+  const headerConnected = document.getElementById('db-status-connected');
+  const headerDbName = document.getElementById('db-status-name');
+
+  // Update sidebar connection status
   if (connectBtn && disconnectBtn && statusIndicator && statusText) {
     if (isConnected) {
       // Connected to server - enable disconnect, disable connect
@@ -338,6 +344,22 @@ window.updateConnectionStatus = function(isConnected, dbName = '') {
       if (dbDropdown) {
         dbDropdown.disabled = true;
       }
+    }
+  }
+
+  // Update header connection status widget
+  if (headerDisconnected && headerConnected && headerDbName) {
+    if (isConnected && dbName) {
+      // Show connected state with database name
+      headerDisconnected.classList.add('hidden');
+      headerConnected.classList.remove('hidden');
+      headerConnected.classList.add('inline-flex');
+      headerDbName.textContent = dbName;
+    } else {
+      // Show disconnected state
+      headerDisconnected.classList.remove('hidden');
+      headerConnected.classList.add('hidden');
+      headerConnected.classList.remove('inline-flex');
     }
   }
 };
