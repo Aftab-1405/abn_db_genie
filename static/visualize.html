@@ -366,11 +366,16 @@
                                 <select id="viz-chart-type"
                                     class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors">
                                     <option value="bar">📊 Bar Chart</option>
+                                    <option value="horizontalBar">📉 Horizontal Bar Chart</option>
+                                    <option value="stackedBar">📊 Stacked Bar Chart</option>
                                     <option value="line">📈 Line Chart</option>
+                                    <option value="area">🌄 Area Chart</option>
                                     <option value="pie">🥧 Pie Chart</option>
-                                    <option value="scatter">🔵 Scatter Plot</option>
                                     <option value="doughnut">🍩 Doughnut Chart</option>
+                                    <option value="scatter">🔵 Scatter Plot</option>
+                                    <option value="bubble">⭕ Bubble Chart</option>
                                     <option value="radar">🎯 Radar Chart</option>
+                                    <option value="polarArea">🎨 Polar Area Chart</option>
                                 </select>
                             </div>
                         </div>
@@ -1760,7 +1765,7 @@
                 }
 
                 // Ensure selected Y fields have numeric data for numeric chart types
-                const requiresNumeric = ['bar', 'line', 'scatter', 'doughnut', 'pie', 'radar'];
+                const requiresNumeric = ['bar', 'horizontalBar', 'stackedBar', 'line', 'area', 'scatter', 'bubble', 'doughnut', 'pie', 'radar', 'polarArea'];
                 if (requiresNumeric.includes(chartType)) {
                     const bad = yFields.filter(y => {
                         const idx = fields.indexOf(y);
@@ -1802,12 +1807,12 @@
                     return {
                         label: yName,
                         data: data,
-                        backgroundColor: chartType === 'pie' || chartType === 'doughnut' ?
+                        backgroundColor: chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea' ?
                             colors.slice(0, data.length) : colors[i % colors.length] + '80',
                         borderColor: colors[i % colors.length],
                         borderWidth: 2,
                         tension: 0.4,
-                        fill: chartType === 'line' ? false : true
+                        fill: chartType === 'area' ? true : (chartType === 'line' ? false : true)
                     };
                 });
 
@@ -1855,7 +1860,7 @@
                                 mode: 'index'
                             }
                         },
-                        scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' ? buildScalesConfig(data, chartType, showGrid) : {},
+                        scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' && chartType !== 'polarArea' ? buildScalesConfig(data, chartType, showGrid) : {},
                         animation: {
                             duration: 1000,
                             easing: 'easeInOutQuart'
@@ -1883,6 +1888,68 @@
                 }
 
                 if (chartType === 'radar') {
+                    config.options.scales = {
+                        r: {
+                            beginAtZero: true,
+                            grid: { display: showGrid }
+                        }
+                    };
+                }
+
+                // Horizontal bar chart - swap x and y axes
+                if (chartType === 'horizontalBar') {
+                    config.type = 'bar';
+                    config.options.indexAxis = 'y';
+                }
+
+                // Stacked bar chart configuration
+                if (chartType === 'stackedBar') {
+                    config.type = 'bar';
+                    config.options.scales.x.stacked = true;
+                    config.options.scales.y.stacked = true;
+                }
+
+                // Area chart is actually a line chart with fill
+                if (chartType === 'area') {
+                    config.type = 'line';
+                    config.data.datasets.forEach(dataset => {
+                        dataset.fill = true;
+                        dataset.backgroundColor = dataset.borderColor + '40';
+                    });
+                }
+
+                // Bubble chart configuration
+                if (chartType === 'bubble') {
+                    // For bubble charts, use first Y field for y-axis and second for bubble size
+                    if (data.yFields.length >= 2) {
+                        const yIndex1 = fields.indexOf(data.yFields[0]);
+                        const yIndex2 = fields.indexOf(data.yFields[1]);
+
+                        const bubbleData = data.labels.map((xLab, i) => {
+                            const xVal = parseFloat(xLab) || i;
+                            const yVal = parseFloat(filteredRows[i][yIndex1]) || 0;
+                            const rVal = Math.abs(parseFloat(filteredRows[i][yIndex2]) || 10);
+                            return { x: xVal, y: yVal, r: rVal };
+                        });
+
+                        config.data.datasets = [{
+                            label: `${data.yFields[0]} (size: ${data.yFields[1]})`,
+                            data: bubbleData,
+                            backgroundColor: colorPalettes[currentColorPalette][0] + '60',
+                            borderColor: colorPalettes[currentColorPalette][0],
+                            borderWidth: 2
+                        }];
+
+                        config.options.scales.x.type = 'linear';
+                    } else {
+                        // Fallback to scatter if only one Y field
+                        alert('Bubble chart requires at least 2 Y-axis fields (Y position and bubble size)');
+                        return;
+                    }
+                }
+
+                // Polar area chart configuration
+                if (chartType === 'polarArea') {
                     config.options.scales = {
                         r: {
                             beginAtZero: true,
