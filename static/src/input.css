@@ -106,7 +106,7 @@
     }
 
     /* =================================================================
-       MESSAGE LAYOUT - Enhanced chat message styling
+       MESSAGE LAYOUT - Theme-aware chat message styling
        ================================================================= */
 
     .message {
@@ -118,29 +118,27 @@
         @apply opacity-100 translate-y-0;
     }
 
-    /* User messages - bubble style on right */
+    /* User messages - subtle theme-aware bubble */
     .message--user {
         @apply flex-row justify-start;
     }
 
     .message--user .message__content {
-        @apply bg-blue-600 dark:bg-blue-700 text-white rounded-2xl rounded-tl-sm;
+        @apply app-surface-secondary rounded-2xl rounded-tl-sm;
         @apply px-4 py-3 shadow-sm max-w-[85%];
+        @apply border app-border;
     }
 
-    .message--user .message__content p {
-        @apply text-white !important;
-    }
-
-    /* AI messages - full width with subtle background */
+    /* AI messages - always show background, even when empty */
     .message--ai {
         @apply flex-row;
     }
 
     .message--ai .message__content {
-        @apply bg-gradient-to-br from-purple-50/50 to-blue-50/50;
-        @apply dark:from-purple-950/20 dark:to-blue-950/20;
-        @apply rounded-xl px-4 py-3 border border-purple-100 dark:border-purple-900/30;
+        @apply app-surface rounded-xl px-4 py-3;
+        @apply border app-border shadow-sm;
+        /* Ensure minimum height so background is visible even when empty */
+        @apply min-h-[3rem];
     }
 
     .message-avatar {
@@ -159,7 +157,8 @@
     }
 
     .message-loading-dots span {
-        @apply w-2 h-2 rounded-full bg-purple-400 dark:bg-purple-600;
+        @apply w-2 h-2 rounded-full;
+        @apply bg-gray-400 dark:bg-gray-600;
         animation: loading-bounce 1.4s infinite ease-in-out both;
     }
 

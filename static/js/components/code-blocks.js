@@ -1,6 +1,6 @@
 // code-block.js - Refactored to handle only functionality, not styling
 
-import { showNotification } from "./notifications.js";
+import toastManager from "../utils/toast.js";
 import { renderMermaid } from "./mermaid-helper.js";
 import { executeSqlString } from "../sql.js";
 
@@ -129,11 +129,11 @@ function createCopyButton(codeText, elements) {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
       `;
-      if (elements) showNotification(elements, "Code copied to clipboard", "success");
+      toastManager.success("Code copied to clipboard");
     } catch (err) {
       // Log the error and notify the user
       console.error("Failed to copy code to clipboard", err);
-      if (elements) showNotification(elements, "Failed to copy code", "error");
+      toastManager.error("Failed to copy code");
     }
 
     copyTimeoutId = setTimeout(() => {

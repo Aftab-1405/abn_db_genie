@@ -5,9 +5,9 @@ import {
   addMessage,
   wrapCodeBlocks,
   scrollToBottom,
-  showNotification,
 } from "./ui.js";
 import { sendUserInput } from "./chat.js";
+import toastManager from "./utils/toast.js";
 
 // Reusable API response handler with error notification
 const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
@@ -18,7 +18,7 @@ const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
     throw new Error(`Unexpected response: ${data.status}`);
   } catch (error) {
     console.error("API Error:", error);
-    showNotification(elements, errorMessage, "error");
+    toastManager.error(errorMessage);
     return null;
   }
 };
@@ -243,11 +243,7 @@ const handleDbConnectionForm = async (elements, formData) => {
     const data = await resp.json();
 
     if (data.status === "connected") {
-      showNotification(
-        elements,
-        `Connected to database at ${host}:${port}`,
-        "success"
-      );
+      toastManager.success(`Connected to database at ${host}:${port}`);
 
       // Populate schemas dropdown - handle both 'schemas' and 'databases' keys
       const databases = data.schemas || data.databases || [];
@@ -258,16 +254,12 @@ const handleDbConnectionForm = async (elements, formData) => {
 
       return true;
     } else {
-      showNotification(
-        elements,
-        data.message || "Failed to connect to the database",
-        "error"
-      );
+      toastManager.error(data.message || "Failed to connect to the database");
       return false;
     }
   } catch (error) {
     console.error("Database connection error:", error);
-    showNotification(elements, "Connection error occurred", "error");
+    toastManager.error("Connection error occurred");
     return false;
   }
 };
@@ -455,18 +447,18 @@ const setupDbConnectionModal = (elements) => {
           elements.serverConnected = false;
           // Clear dropdown
           elements.databasesDropdown.innerHTML = '';
-          showNotification(elements, 'Disconnected from database server', 'success');
+          toastManager.success('Disconnected from database server');
           // Update connection status UI
           window.updateConnectionStatus(false);
 
           // Inform other tabs (optional): set a localStorage flag to notify other pages
           try { localStorage.setItem('dbDisconnectedAt', Date.now().toString()); } catch (e) {}
         } else {
-          showNotification(elements, data?.message || 'Failed to disconnect', 'error');
+          toastManager.error(data?.message || 'Failed to disconnect');
         }
       } catch (err) {
         console.error('Disconnect error:', err);
-        showNotification(elements, 'Failed to disconnect', 'error');
+        toastManager.error('Failed to disconnect');
       } finally {
         if (elements.clearButtonLoading) {
           elements.clearButtonLoading(disconnectBtn, orig);
@@ -612,7 +604,7 @@ const setupProfileMenu = (elements) => {
         window.location.replace("/auth");
       } catch (error) {
         console.error("Logout error:", error);
-        showNotification(elements, "Failed to logout. Please try again.", "error");
+        toastManager.error("Failed to logout. Please try again.");
       }
     });
   }
@@ -729,7 +721,7 @@ export function initializeEventBindings(elements) {
       if (elements.aiLogoContainer) {
         elements.aiLogoContainer.style.display = "flex";
       }
-      showNotification(elements, "New conversation started", "success");
+      toastManager.success("New conversation started");
       // Refresh conversation list to show the new conversation
       await fetchAndDisplayConversations(elements);
     }
@@ -789,20 +781,16 @@ const handleConversationDeletion = async (
     if (response.ok) {
       // Remove conversation item from UI
       conversationItem.remove();
-      showNotification(
-        elements,
-        "Conversation deleted successfully",
-        "success"
-      );
+      toastManager.success("Conversation deleted successfully");
 
       handleCurrentConversationDeletion(elements, conversationId);
       handleEmptyConversationList();
     } else {
-      showNotification(elements, "Failed to delete conversation", "error");
+      toastManager.error("Failed to delete conversation");
     }
   } catch (error) {
     console.error("Error deleting conversation:", error);
-    showNotification(elements, "Error deleting conversation", "error");
+    toastManager.error("Error deleting conversation");
   }
 };
 
@@ -1234,7 +1222,7 @@ async function loadConversation(elements, conversationId) {
     }
 
     scrollToBottom(elements);
-    showNotification(elements, "Conversation loaded", "success");
+    toastManager.success("Conversation loaded");
   }
 }
 
