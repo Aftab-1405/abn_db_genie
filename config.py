@@ -135,6 +135,11 @@ class Config:
     RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
     RATELIMIT_DEFAULT = os.getenv('RATELIMIT_DEFAULT', '200 per day, 50 per hour')
 
+    # SQL Query Security Configuration
+    MAX_QUERY_RESULTS = int(os.getenv('MAX_QUERY_RESULTS', 10000))  # Max rows to return
+    QUERY_TIMEOUT_SECONDS = int(os.getenv('QUERY_TIMEOUT_SECONDS', 30))  # Query timeout
+    MAX_QUERY_LENGTH = int(os.getenv('MAX_QUERY_LENGTH', 10000))  # Max characters in query
+
 class DevelopmentConfig(Config):
     """Development-specific configuration"""
     DEBUG = True

@@ -289,32 +289,41 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
 
-    // Firebase configuration (same as auth.js)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCzmz7H7OgKXQplbg1UNMuQ2B4QMwU_FT4",
-      authDomain: "myproject-5216c.firebaseapp.com",
-      projectId: "myproject-5216c",
-      storageBucket: "myproject-5216c.appspot.com",
-      messagingSenderId: "89584435724",
-      appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
-    };
+    // Fetch Firebase configuration from backend (secure)
+    async function initializeAuth() {
+      try {
+        const response = await fetch('/firebase-config');
+        const data = await response.json();
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+        if (data.status === 'success' && data.config) {
+          // Initialize Firebase with backend config
+          const app = initializeApp(data.config);
+          const auth = getAuth(app);
 
-    // Check auth state on every page load
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        // User is not signed in, redirect to auth page
+          // Check auth state on every page load
+          onAuthStateChanged(auth, (user) => {
+            if (!user) {
+              // User is not signed in, redirect to auth page
+              window.location.replace("/auth");
+            }
+            // User is signed in, allow access to the page
+          });
+        } else {
+          console.error('Failed to fetch Firebase config');
+          window.location.replace("/auth");
+        }
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
         window.location.replace("/auth");
       }
-      // User is signed in, allow access to the page
-    });
+    }
+
+    // Initialize auth on page load
+    initializeAuth();
   </script>
 
-  <!-- Main application script -->
-  <script type="module" src="/static/script.js"></script>
+  <!-- Main application script - Direct import without wrapper -->
+  <script type="module" src="/static/js/index.js"></script>
 </body>
 
 </html>
