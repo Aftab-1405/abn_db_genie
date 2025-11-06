@@ -238,7 +238,8 @@ def execute_sql_query(sql_query: str) -> Dict:
             logger.warning(f"Non-SELECT query blocked: {analysis['query_type']}")
             return {
                 'status': 'error',
-                'message': 'Only SELECT queries are allowed. INSERT, UPDATE, DELETE operations are not permitted.'
+                'message': f'⚠️ READ-ONLY MODE: Only SELECT queries are allowed. {analysis["query_type"]} operations are blocked for security. This system is designed for data exploration and analysis only.',
+                'query_type_blocked': analysis['query_type']
             }
         
         # Execute query with timing

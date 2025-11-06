@@ -196,13 +196,79 @@ The application will be available at:
 4. All user inputs are sanitized and validated
 5. Database credentials are stored only in server memory during active sessions
 
-## Recent Security Fixes
+### Advanced Security Features
 
-### Critical Issues Resolved:
+#### 1. CORS Protection
+Cross-Origin Resource Sharing (CORS) is configured to control which domains can access the API.
+
+**Configuration (.env):**
+```
+CORS_ORIGINS=*  # Allow all (dev only)
+# OR for production:
+CORS_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+```
+
+#### 2. Rate Limiting
+Protects against abuse and DoS attacks by limiting request frequency.
+
+**Configuration (.env):**
+```
+RATELIMIT_ENABLED=True
+RATELIMIT_STORAGE_URL=memory://  # Use redis:// for production
+RATELIMIT_DEFAULT=200 per day, 50 per hour
+```
+
+**Default Limits:**
+- 200 requests per day per IP
+- 50 requests per hour per IP
+- Specific endpoints may have stricter limits
+
+For production with Redis:
+```
+RATELIMIT_STORAGE_URL=redis://localhost:6379
+```
+
+#### 3. Firebase Project Consistency
+The application validates that both Admin SDK (backend) and Client SDK (frontend) use the **same Firebase project**.
+
+**Critical:** If `FIREBASE_PROJECT_ID` ≠ `FIREBASE_WEB_PROJECT_ID`, the application will fail to start with a clear error message.
+
+#### 4. Database Connection Monitoring
+- **Heartbeat Endpoint:** `/db_heartbeat` - Lightweight health check
+- **Status Endpoint:** `/db_status` - Detailed connection information
+- Frontend can poll these endpoints to detect connection loss
+
+#### 5. Read-Only Mode
+- **Visual Indicator:** Yellow badge in header showing "READ-ONLY"
+- **AI Awareness:** Gemini AI knows about read-only restrictions
+- **Query Validation:** All non-SELECT queries are blocked with helpful error messages
+- **User Feedback:** Clear explanations when write operations are attempted
+
+## Recent Security & Feature Updates
+
+### Phase 1: Critical Security Fixes ✅
 1. **Exposed Firebase Keys** - Moved from frontend JavaScript to backend environment variables
 2. **Missing Login Protection** - Added `@login_required` decorator to Gemini API endpoint
 3. **Missing Logout Endpoint** - Added `/logout` route for proper session cleanup
 4. **Environment Configuration** - Created `.env.example` template for easy setup
+
+### Phase 2: High-Priority Enhancements ✅
+1. **Dual Firebase Configuration Fix** - Added validation to ensure Admin SDK and Client SDK use the same Firebase project
+2. **Database Connection Monitoring** - Added `/db_heartbeat` endpoint for connection health checks
+3. **CORS Configuration** - Implemented Flask-CORS for secure cross-origin requests
+4. **Rate Limiting** - Implemented Flask-Limiter to prevent abuse and DoS attacks
+5. **Read-Only Mode UI** - Added visual indicator and improved error messages for write operations
+
+### What Changed:
+- **config.py** - Added Firebase project consistency validation, CORS and rate limiting configuration
+- **app.py** - Integrated CORS and rate limiting middleware
+- **requirements.txt** - Added Flask-CORS and Flask-Limiter
+- **api/routes.py** - Added database heartbeat endpoint
+- **services/gemini_service.py** - Enhanced system prompt with read-only mode emphasis
+- **database/operations.py** - Improved error messages for blocked write operations
+- **templates/fragments/header.html** - Added read-only mode badge
+- **.env.example** - Added CORS and rate limiting configuration options
+- **SETUP.md** - Comprehensive documentation for all new features
 
 ## Troubleshooting
 

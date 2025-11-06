@@ -105,6 +105,36 @@ class Config:
             "appId": os.getenv('FIREBASE_APP_ID', '')
         }
 
+    # Validation method to ensure Firebase project consistency
+    @staticmethod
+    def validate_firebase_project_consistency():
+        """Validate that Admin SDK and Client SDK use the same Firebase project"""
+        admin_project_id = os.getenv('FIREBASE_PROJECT_ID', '')
+        web_project_id = os.getenv('FIREBASE_WEB_PROJECT_ID', '')
+
+        if not admin_project_id or not web_project_id:
+            print("⚠️  Warning: Firebase project IDs not configured")
+            return False
+
+        if admin_project_id != web_project_id:
+            raise ValueError(
+                f"Firebase project ID mismatch!\n"
+                f"  Admin SDK (FIREBASE_PROJECT_ID): {admin_project_id}\n"
+                f"  Client SDK (FIREBASE_WEB_PROJECT_ID): {web_project_id}\n"
+                f"Both must use the SAME Firebase project for authentication to work correctly."
+            )
+
+        print(f"✅ Firebase project consistency validated: {admin_project_id}")
+        return True
+
+    # CORS Configuration
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
+
+    # Rate Limiting Configuration
+    RATELIMIT_ENABLED = os.getenv('RATELIMIT_ENABLED', 'True').lower() == 'true'
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+    RATELIMIT_DEFAULT = os.getenv('RATELIMIT_DEFAULT', '200 per day, 50 per hour')
+
 class DevelopmentConfig(Config):
     """Development-specific configuration"""
     DEBUG = True

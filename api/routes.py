@@ -292,6 +292,41 @@ def db_status():
         logger.exception('Error while checking DB status')
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api_bp.route('/db_heartbeat', methods=['GET'])
+def db_heartbeat():
+    """Lightweight heartbeat endpoint to check database connection health.
+
+    Returns minimal connection status without fetching databases.
+    Used by frontend for periodic connection health checks.
+    """
+    try:
+        from database import connection as db_connection
+
+        # Try to ping the connection
+        connected = False
+        try:
+            if hasattr(db_connection.thread_local, 'connection'):
+                conn = db_connection.thread_local.connection
+                if conn.is_connected():
+                    # Perform a lightweight query to verify connection
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.fetchone()
+                    cursor.close()
+                    connected = True
+        except Exception as e:
+            logger.debug(f'Heartbeat check failed: {e}')
+            connected = False
+
+        return jsonify({
+            'status': 'ok',
+            'connected': connected,
+            'timestamp': __import__('time').time()
+        })
+    except Exception as e:
+        logger.exception('Error in heartbeat check')
+        return jsonify({'status': 'error', 'connected': False}), 500
+
 @api_bp.route('/delete_conversation/<conversation_id>', methods=['DELETE'])
 @login_required
 def delete_conversation(conversation_id):
