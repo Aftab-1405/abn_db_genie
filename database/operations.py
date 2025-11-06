@@ -31,21 +31,24 @@ class DatabaseOperations:
     _cache_lock = threading.Lock()
     
     @staticmethod
-    @lru_cache(maxsize=32)
     def get_databases() -> Dict:
-        """Cached fetch of available databases - SECURE & FAST VERSION"""
+        """Fetch available databases - SECURE VERSION
+
+        Multi-user safe: Uses session-based connection, no global caching.
+        Note: Removed @lru_cache to support per-user database configurations.
+        """
         try:
             with get_cursor() as cursor:
                 cursor.execute("SHOW DATABASES")
                 databases = [db[0] for db in cursor.fetchall()]
-            
+
             # Filter out system databases for security
             system_dbs = {'information_schema', 'mysql', 'performance_schema', 'sys'}
             user_databases = [db for db in databases if db.lower() not in system_dbs]
-            
+
             logger.info(f"Retrieved {len(user_databases)} user databases")
             return {'status': 'success', 'databases': user_databases}
-            
+
         except mysql.connector.Error as err:
             logger.error(f"Database error in get_databases: {err}")
             return {'status': 'error', 'message': 'Failed to retrieve databases'}
