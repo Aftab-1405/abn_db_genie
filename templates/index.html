@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DB-Genie</title>
+
+  <!-- Favicon links -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/Brand Product.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/images/Brand Product.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/images/Brand Product.png">
+  <link rel="shortcut icon" href="/static/images/Brand Product.png">
+
+  <!-- Optimized theme initialization - prevents FOUC -->
+  <!-- Prevent transition animations while theme is being applied to avoid flicker -->
+  <style>
+    /* Temporarily disable transitions during initial theme application */
+    .no-theme-transition *,
+    .no-theme-transition {
+      transition: none !important;
+      animation: none !important;
+    }
+
+    /* Lightweight tooltip styles for icon-only buttons */
+    .has-tooltip {
+      position: relative;
+    }
+
+    .has-tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      line-height: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 9999;
+    }
+
+    .has-tooltip[data-tooltip-pos="bottom"]::after {
+      top: calc(100% + 8px);
+      bottom: auto;
+      transform: translateX(-50%);
+    }
+
+    .has-tooltip[data-tooltip-pos="left-edge"]::after {
+      left: 6px;
+      transform: translateX(0) translateY(-2px);
+    }
+
+    .has-tooltip[data-tooltip-pos="right-edge"]::after {
+      left: auto;
+      right: 6px;
+      transform: translateX(0) translateY(-2px);
+    }
+
+    .has-tooltip:focus::after,
+    .has-tooltip:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    /* Theme-aware tooltip colors */
+    .dark .has-tooltip::after {
+      background: rgba(255, 255, 255, 0.92);
+      color: #111827;
+      /* neutral-900 */
+    }
+  </style>
+  <script>
+    // Position tooltips so they never overflow the viewport.
+    (function () {
+      const tooltipTargets = () => Array.from(document.querySelectorAll('.has-tooltip'));
+
+      function compute() {
+        tooltipTargets().forEach((el) => computeForElement(el));
+      }
+
+      // Compute for a single element (used for hover/focus delegation)
+      function computeForElement(el) {
+        if (!el || !el.getBoundingClientRect) return;
+        const rect = el.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // Prefer above the element, but flip to bottom if not enough space
+        const enoughAbove = rect.top > 48;
+        const enoughBelow = (vh - rect.bottom) > 48;
+
+        if (!enoughAbove && enoughBelow) {
+          el.setAttribute('data-tooltip-pos', 'bottom');
+        } else if (rect.left < 64) {
+          el.setAttribute('data-tooltip-pos', 'left-edge');
+        } else if (rect.right > vw - 64) {
+          el.setAttribute('data-tooltip-pos', 'right-edge');
+        } else {
+          el.removeAttribute('data-tooltip-pos');
+        }
+      }
+
+      // Run after first paint and on resize/scroll
+      requestAnimationFrame(() => setTimeout(compute, 120));
+      window.addEventListener('resize', compute);
+      window.addEventListener('scroll', compute, { passive: true });
+      document.addEventListener('DOMContentLoaded', compute);
+
+      // Recompute placement on hover (pointerover) and on keyboard focus so
+      // tooltips always position correctly after any layout change or click.
+      document.addEventListener('pointerover', (e) => {
+        const el = e.target && e.target.closest && e.target.closest('.has-tooltip');
+        if (el) computeForElement(el);
+      }, { passive: true });
+
+      document.addEventListener('focusin', (e) => {
+        const el = e.target && e.target.closest && e.target.closest('.has-tooltip');
+        if (el) computeForElement(el);
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      // Add a guard class to disable transitions until theme is set.
+      document.documentElement.classList.add('no-theme-transition');
+
+      const saved = localStorage.getItem('theme');
+      const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      const theme = saved || preferred;
+
+      // Apply the theme without causing CSS transitions.
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+
+      // Persist inferred preference only when user hasn't explicitly chosen.
+      if (!saved) {
+        localStorage.setItem('theme', theme);
+      }
+
+      // Remove the guard in the next frame so subsequent theme toggles animate normally.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.documentElement.classList.remove('no-theme-transition');
+      }));
+    })();
+  </script>
+  <script>
+    // Ensure tooltips opened by mouse click are dismissed when the pointer leaves
+    // the element. Keyboard focus still shows tooltips (no change).
+    (function () {
+      document.addEventListener('pointerdown', (e) => {
+        const el = e.target.closest && e.target.closest('.has-tooltip');
+        if (!el) return;
+
+        // Only treat actual pointer interactions (mouse/touch/stylus)
+        // For keyboard focus, there will be no pointerdown on the element.
+        // Install a one-time pointerleave handler to remove focus when pointer exits.
+        const onLeave = () => {
+          try {
+            if (document.activeElement === el) el.blur();
+          } catch (err) { console.debug?.('Failed to blur element on pointerleave', err); }
+          el.removeAttribute('data-tooltip-pos'); // allow reposition recalculation later
+          el.removeEventListener('pointerleave', onLeave);
+        };
+
+        // If pointer leaves the target, blur it so :focus-based tooltip hides.
+        el.addEventListener('pointerleave', onLeave);
+      }, { passive: true });
+
+      // Also, clicking elsewhere should remove any transient tooltip state quickly.
+      document.addEventListener('click', (e) => {
+        const els = document.querySelectorAll('.has-tooltip');
+        els.forEach((el) => {
+          // If element is focused but not hovered, blur it to hide tooltip
+          const isHovered = !!el.matches(':hover');
+          if (document.activeElement === el && !isHovered) {
+            try { el.blur(); } catch (err) { console.debug?.('Failed to blur element during global click cleanup', err); }
+          }
+        });
+      });
+    })();
+  </script>
+
+  <!-- Critical resource preloading for performance -->
+  <link rel="preload" href="/static/styles.css" as="style">
+  <link rel="preload" href="/static/images/Brand Logo.png" as="image">
+  <!-- Preload the primary product logo used in the chat area to ensure the
+    centered logo is available for first-paint. -->
+  <link rel="preload" href="/static/images/Brand Product.png" as="image">
+  <link rel="preload" href="/static/images/user.png" as="image">
+
+  <!-- Preconnect to heavy CDNs early to reduce DNS/TCP/TLS latency -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+  <!-- Critical CSS -->
+  <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/static/styles.css">
+
+  <!-- Non-critical CSS with efficient loading -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" as="style"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" as="style"
+    onload="this.onload=null;this.rel='stylesheet'">
+
+  <!-- Syntax highlighting with optimal loading -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+
+  <!-- Fallback for preload -->
+  <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  </noscript>
+</head>
+
+<!-- Using centralized theme classes for consistency -->
+
+<body class="app-surface app-transition overflow-hidden">
+  <div class="font-sans flex h-screen min-h-0">
+
+    <!-- Sidebar Fragment -->
+    {% include 'fragments/sidebar.html' %}
+
+    <!-- SQL Editor Popup Fragment -->
+    {% include 'fragments/sql_editor_popup.html' %}
+
+    <!-- Main Content Area -->
+    <main id="main-content"
+      class="app-surface-secondary flex flex-col flex-grow overflow-hidden min-h-0 w-full md:ml-64 app-transition-slow">
+
+      <!-- Header Fragment -->
+      {% include 'fragments/header.html' %}
+
+      <!-- Settings Modal Fragment -->
+      {% include 'fragments/settings_modal.html' %}
+
+      <!-- Main Chat Area Fragment -->
+      {% include 'fragments/chat_area.html' %}
+
+      <!-- Footer / Input Fragment -->
+      {% include 'fragments/footer_input.html' %}
+
+      <!-- Notification Area Fragment -->
+      {% include 'fragments/notification_area.html' %}
+
+      <!-- Query Result Modal Fragment -->
+      {% include 'fragments/query_result_modal.html' %}
+
+      <!-- DB Connection Modal Fragment -->
+      {% include 'fragments/db_connection_modal.html' %}
+    </main>
+
+  </div>
+
+  <!-- Optimized JavaScript loading strategy -->
+
+  <!-- Critical CodeMirror resources -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+  <script defer
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+  <script defer
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+  <script defer
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/selection/active-line.min.js"></script>
+
+  <!-- Non-critical resources loaded asynchronously -->
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
+
+  <!-- Highlight.js with language support -->
+  <!-- Defer highlight.js to avoid blocking initial render; it will execute
+    after parsing (deferred) and not block paint. -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/sql.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+
+  <!-- Auth state validation script -->
+  <script type="module">
+    // Import Firebase SDK for auth state checking
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+
+    // Firebase configuration (same as auth.js)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCzmz7H7OgKXQplbg1UNMuQ2B4QMwU_FT4",
+      authDomain: "myproject-5216c.firebaseapp.com",
+      projectId: "myproject-5216c",
+      storageBucket: "myproject-5216c.appspot.com",
+      messagingSenderId: "89584435724",
+      appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Check auth state on every page load
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        // User is not signed in, redirect to auth page
+        window.location.replace("/auth");
+      }
+      // User is signed in, allow access to the page
+    });
+  </script>
+
+  <!-- Main application script -->
+  <script type="module" src="/static/script.js"></script>
+</body>
+
+</html>

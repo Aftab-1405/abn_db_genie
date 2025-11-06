@@ -1,0 +1,78 @@
+<!-- Enhanced SQL Editor Popup -->
+<div id="sql-editor-popup"
+    class="fixed top-16 bottom-16 right-2 sm:right-4 w-full sm:w-3/4 lg:w-1/4 app-surface-secondary app-border border rounded-xl shadow-glass-strong z-30 app-transition-slow flex flex-col translate-x-full opacity-0 pointer-events-none invisible backdrop-blur-sm">
+
+    <!-- SQL Editor Header with Enhanced Design -->
+    <div
+        class="sql-editor-header flex items-center justify-between px-3 py-2 app-border border-b app-surface rounded-t-xl min-h-0 shadow-depth-1">
+        <!-- Left side - Brand Section -->
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+                <img src="/static/images/Brand Product.png" alt="DB Genie" class="w-6 h-6 rounded-lg">
+                <span class="app-text font-bold text-sm tracking-tight hidden sm:block">SQL Editor</span>
+            </div>
+        </div>
+
+        <!-- Right side - Enhanced Icon Action buttons -->
+        <div class="flex items-center gap-1 flex-shrink-0">
+            <!-- Execute Button -->
+            <button id="execute-query"
+                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full border-0 bg-green-600 hover:bg-green-700 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
+                data-tooltip="Run (Ctrl+Enter)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
+                    viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+            </button>
+
+            <!-- Close Button -->
+            <button id="sql-editor-close"
+                class="app-button p-2 h-10 w-10 flex items-center justify-center rounded-full border-0 bg-red-600 hover:bg-red-700 text-white shadow-depth-1 hover:shadow-depth-2 group has-tooltip"
+                data-tooltip="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 app-transition"
+                    viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm3.536 14.121a1 1 0 01-1.414 0L12 13.414 9.879 15.536a1 1 0 01-1.414-1.414L10.586 12 8.464 9.879a1 1 0 011.414-1.414L12 10.586l2.121-2.121a1 1 0 011.414 1.414L13.414 12l2.121 2.121a1 1 0 010 1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- SQL Editor Content Area -->
+    <div class="sql-editor-content flex-1 flex flex-col min-h-0">
+        <!-- Main Editor Area -->
+        <div class="flex-1 p-0 min-h-0 app-surface">
+            <div id="sql-editor-container"
+                class="relative h-full overflow-hidden app-surface shadow-none bg-transparent app-scrollbar">
+                <div id="sql-editor"
+                    class="h-full p-3 app-text font-mono text-sm overflow-auto leading-relaxed bg-transparent app-scrollbar">
+                    <!-- CodeMirror will be initialized here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Status Bar -->
+        <div class="px-3 py-2 app-border border-t app-surface rounded-b-xl shadow-depth-1">
+            <div class="flex items-center justify-between text-xs app-text-secondary">
+                <!-- Status indicators -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="hidden sm:inline">Ready</span>
+                    </div>
+                </div>
+
+                <!-- Keyboard shortcut -->
+                <div class="flex items-center gap-1 sm:gap-2 font-medium flex-shrink-0">
+                    <kbd
+                        class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Ctrl</kbd>
+                    <span class="hidden sm:inline app-text-tertiary">+</span>
+                    <kbd
+                        class="px-2 py-1 app-surface-secondary app-border border rounded text-xs app-text shadow-depth-1">Enter</kbd>
+                    <span class="ml-2 hidden sm:inline app-text-tertiary">Run</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

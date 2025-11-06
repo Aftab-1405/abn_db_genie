@@ -1,0 +1,50 @@
+<!-- Database Connection Modal -->
+<div id="db-connection-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 dark:bg-opacity-70 hidden">
+    <div class="app-surface rounded-xl shadow-xl p-8 w-full max-w-md app-border">
+        <h2 class="text-xl font-bold mb-4 app-text text-center">Connect to MySQL Database</h2>
+        <form id="db-connection-form" class="space-y-4">
+            <div>
+                <label for="mysql-host" class="block text-sm font-medium mb-1 app-text-secondary">Host</label>
+                <input type="text" id="mysql-host" name="host" placeholder="localhost" required
+                    class="w-full p-2 rounded-lg app-input app-border" />
+            </div>
+            <div>
+                <label for="mysql-port" class="block text-sm font-medium mb-1 app-text-secondary">Port</label>
+                <input type="number" id="mysql-port" name="port" placeholder="3306" required
+                    class="w-full p-2 rounded-lg app-input app-border" />
+            </div>
+            <div>
+                <label for="mysql-user" class="block text-sm font-medium mb-1 app-text-secondary">User</label>
+                <input type="text" id="mysql-user" name="user" placeholder="root" required
+                    class="w-full p-2 rounded-lg app-input app-border" />
+            </div>
+            <div>
+                <label for="mysql-password" class="block text-sm font-medium mb-1 app-text-secondary">Password</label>
+                <input type="password" id="mysql-password" name="password" required
+                    class="w-full p-2 rounded-lg app-input app-border" />
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="button" id="db-connection-cancel" aria-label="Cancel"
+                    class="app-button px-4 py-2 rounded-lg font-semibold shadow transition-colors duration-150">Cancel</button>
+                <button type="submit" id="db-connection-submit" aria-label="Connect"
+                    class="app-button px-4 py-2 rounded-lg bg-brand-purple-600 text-white hover:bg-brand-purple-700 font-semibold shadow transition-colors duration-150">Connect</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    // Support both close buttons
+    setTimeout(() => {
+        const modal = document.getElementById('db-connection-modal');
+        const cancel1 = document.getElementById('db-connection-cancel');
+        const cancel2 = document.getElementById('db-connection-cancel-2');
+        [cancel1, cancel2].forEach(btn => {
+            if (btn) btn.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.getElementById('db-connection-form').reset();
+            };
+        });
+    }, 100);
+</script>
