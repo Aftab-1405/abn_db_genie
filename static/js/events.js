@@ -562,24 +562,26 @@ const setupProfileMenu = (elements) => {
           console.debug('localStorage clear error:', e);
         }
 
-        // Step 4: Import Firebase auth dynamically
-        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js");
-        const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js");
+        // Step 4: Fetch Firebase config and sign out
+        try {
+          const configResp = await fetch('/firebase-config');
+          const configData = await configResp.json();
 
-        // Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyCzmz7H7OgKXQplbg1UNMuQ2B4QMwU_FT4",
-          authDomain: "myproject-5216c.firebaseapp.com",
-          projectId: "myproject-5216c",
-          storageBucket: "myproject-5216c.appspot.com",
-          messagingSenderId: "89584435724",
-          appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
-        };
+          if (configData.status === 'success' && configData.config) {
+            // Import Firebase auth dynamically
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js");
+            const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js");
 
-        // Step 5: Initialize Firebase and sign out
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        await signOut(auth);
+            // Step 5: Initialize Firebase and sign out
+            const app = initializeApp(configData.config);
+            const auth = getAuth(app);
+            await signOut(auth);
+          } else {
+            console.warn('Could not fetch Firebase config for logout, continuing anyway');
+          }
+        } catch (firebaseError) {
+          console.warn('Firebase logout error, continuing with session cleanup:', firebaseError);
+        }
 
         // Step 6: Clear session on backend (this should also clean up DB connections)
         await fetch("/logout", { method: "POST" });

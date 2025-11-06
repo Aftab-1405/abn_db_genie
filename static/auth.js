@@ -12,19 +12,34 @@ import {
   signInWithPopup,
 } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
 
-// Firebase configuration (keep sensitive values in environment variables in production)
-const firebaseConfig = {
-  apiKey: "AIzaSyCzmz7H7OgKXQplbg1UNMuQ2B4QMwU_FT4",
-  authDomain: "myproject-5216c.firebaseapp.com",
-  projectId: "myproject-5216c",
-  storageBucket: "myproject-5216c.appspot.com",
-  messagingSenderId: "89584435724",
-  appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
-};
+// Firebase configuration - fetched from backend for security
+let firebaseConfig = null;
+let app = null;
+let auth = null;
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+// Fetch Firebase config from backend
+async function initializeFirebase() {
+  try {
+    const response = await fetch('/firebase-config');
+    const data = await response.json();
+
+    if (data.status === 'success' && data.config) {
+      firebaseConfig = data.config;
+      // Initialize Firebase
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      return true;
+    } else {
+      console.error('Failed to fetch Firebase configuration');
+      showNotification('Failed to initialize authentication system');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    showNotification('Failed to initialize authentication system');
+    return false;
+  }
+}
 
 // Cache DOM elements once
 const elements = {
@@ -193,13 +208,20 @@ function initializeEventListeners() {
 }
 
 // Initialize everything on script load
-(function init() {
-  initializeEventListeners();
-  // If desired, re-enable auth state check below—but it's commented out per original code:
-  // import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-  // onAuthStateChanged(auth, (user) => {
-  //   if (user) {
-  //     setSession(user.email);
-  //   }
-  // });
+(async function init() {
+  // Wait for Firebase to initialize before setting up event listeners
+  const initialized = await initializeFirebase();
+
+  if (initialized) {
+    initializeEventListeners();
+    // If desired, re-enable auth state check below—but it's commented out per original code:
+    // import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+    // onAuthStateChanged(auth, (user) => {
+    //   if (user) {
+    //     setSession(user.email);
+    //   }
+    // });
+  } else {
+    showNotification('Failed to initialize. Please refresh the page.');
+  }
 })();

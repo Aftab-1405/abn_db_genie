@@ -92,6 +92,19 @@ class Config:
     # Logging Configuration
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
+    # Firebase Web/Client SDK Configuration (for frontend)
+    @staticmethod
+    def get_firebase_web_config():
+        """Get Firebase web client configuration from environment variables"""
+        return {
+            "apiKey": os.getenv('FIREBASE_WEB_API_KEY', ''),
+            "authDomain": os.getenv('FIREBASE_AUTH_DOMAIN', ''),
+            "projectId": os.getenv('FIREBASE_WEB_PROJECT_ID', ''),
+            "storageBucket": os.getenv('FIREBASE_STORAGE_BUCKET', ''),
+            "messagingSenderId": os.getenv('FIREBASE_MESSAGING_SENDER_ID', ''),
+            "appId": os.getenv('FIREBASE_APP_ID', '')
+        }
+
 class DevelopmentConfig(Config):
     """Development-specific configuration"""
     DEBUG = True

@@ -23,6 +23,7 @@ def index():
     return render_template('index.html')
 
 @api_bp.route('/pass_userinput_to_gemini', methods=['POST'])
+@login_required
 def pass_userinput_to_gemini():
     data = request.get_json()
     prompt = data['prompt']
