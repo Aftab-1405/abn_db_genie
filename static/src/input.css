@@ -70,6 +70,31 @@
     }
 
     /* =================================================================
+       SIDEBAR TABS - Tab navigation styling
+       ================================================================= */
+
+    .sidebar-tab {
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .sidebar-tab.active {
+        @apply app-text border-indigo-600 dark:border-indigo-400;
+    }
+
+    .sidebar-tab:not(.active):hover {
+        @apply app-surface-secondary;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: flex;
+    }
+
+    /* =================================================================
        SQL EDITOR THEME - CodeMirror theme customization
        ================================================================= */
 

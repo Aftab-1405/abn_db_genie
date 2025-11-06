@@ -63,10 +63,14 @@ export async function handleConnectDb(elements) {
       if (elements.databaseExplorer) {
         elements.databaseExplorer.loadTables(dbName);
 
-        // Show the database explorer section
+        // Show the database explorer section and hide empty state
         const explorerSection = document.getElementById('database-explorer-section');
+        const emptyState = document.getElementById('database-empty-state');
         if (explorerSection) {
           explorerSection.style.display = 'block';
+        }
+        if (emptyState) {
+          emptyState.style.display = 'none';
         }
       }
     } else {

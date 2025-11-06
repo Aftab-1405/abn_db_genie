@@ -10,6 +10,7 @@ import { sendUserInput } from "./chat.js";
 import toastManager from "./utils/toast.js";
 import { initQueryHistory } from "./utils/query-history.js";
 import { initDatabaseExplorer } from "./utils/database-explorer.js";
+import { initSidebarTabs } from "./utils/sidebar-tabs.js";
 
 // Reusable API response handler with error notification
 const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
@@ -453,12 +454,16 @@ const setupDbConnectionModal = (elements) => {
           // Update connection status UI
           window.updateConnectionStatus(false);
 
-          // Clear and hide database explorer
+          // Clear and hide database explorer, show empty state
           if (elements.databaseExplorer) {
             elements.databaseExplorer.clear();
             const explorerSection = document.getElementById('database-explorer-section');
+            const emptyState = document.getElementById('database-empty-state');
             if (explorerSection) {
               explorerSection.style.display = 'none';
+            }
+            if (emptyState) {
+              emptyState.style.display = 'flex';
             }
           }
 
@@ -735,6 +740,13 @@ export function initializeEventBindings(elements) {
     }
   } catch (error) {
     console.warn('Failed to initialize database explorer:', error);
+  }
+
+  // Initialize sidebar tabs
+  try {
+    elements.sidebarTabs = initSidebarTabs();
+  } catch (error) {
+    console.warn('Failed to initialize sidebar tabs:', error);
   }
 
   // Start a new conversation
