@@ -58,6 +58,17 @@ export async function handleConnectDb(elements) {
         window.updateConnectionStatus(true, dbName);
       }
       toastManager.success(`Connected to database: ${dbName}`);
+
+      // Load database schema in explorer
+      if (elements.databaseExplorer) {
+        elements.databaseExplorer.loadTables(dbName);
+
+        // Show the database explorer section
+        const explorerSection = document.getElementById('database-explorer-section');
+        if (explorerSection) {
+          explorerSection.style.display = 'block';
+        }
+      }
     } else {
       toastManager.error(data.message || "Failed to connect to database");
     }

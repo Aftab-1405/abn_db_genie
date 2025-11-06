@@ -243,6 +243,55 @@ def disconnect_db():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@api_bp.route('/get_tables', methods=['GET'])
+def get_tables():
+    """Get all tables in the currently selected database."""
+    try:
+        from database.operations import DatabaseOperations
+        from database.connection import get_current_db_name
+
+        db_name = get_current_db_name()
+        if not db_name:
+            return jsonify({'status': 'error', 'message': 'No database selected'}), 400
+
+        tables = DatabaseOperations.get_tables(db_name)
+        return jsonify({'status': 'success', 'tables': tables, 'database': db_name})
+    except Exception as e:
+        logger.exception('Error fetching tables')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@api_bp.route('/get_table_schema', methods=['POST'])
+def get_table_schema_route():
+    """Get schema information for a specific table."""
+    try:
+        from database.operations import DatabaseOperations
+        from database.connection import get_current_db_name
+
+        data = request.get_json()
+        table_name = data.get('table_name')
+
+        if not table_name:
+            return jsonify({'status': 'error', 'message': 'Table name is required'}), 400
+
+        db_name = get_current_db_name()
+        if not db_name:
+            return jsonify({'status': 'error', 'message': 'No database selected'}), 400
+
+        schema = DatabaseOperations.get_table_schema(table_name, db_name)
+        row_count = DatabaseOperations.get_table_row_count(table_name, db_name)
+
+        return jsonify({
+            'status': 'success',
+            'table_name': table_name,
+            'schema': schema,
+            'row_count': row_count
+        })
+    except Exception as e:
+        logger.exception('Error fetching table schema')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @api_bp.route('/db_status', methods=['GET'])
 def db_status():
     """Return whether a DB connection pool exists and optionally the list of databases.

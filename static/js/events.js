@@ -9,6 +9,7 @@ import {
 import { sendUserInput } from "./chat.js";
 import toastManager from "./utils/toast.js";
 import { initQueryHistory } from "./utils/query-history.js";
+import { initDatabaseExplorer } from "./utils/database-explorer.js";
 
 // Reusable API response handler with error notification
 const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
@@ -452,6 +453,15 @@ const setupDbConnectionModal = (elements) => {
           // Update connection status UI
           window.updateConnectionStatus(false);
 
+          // Clear and hide database explorer
+          if (elements.databaseExplorer) {
+            elements.databaseExplorer.clear();
+            const explorerSection = document.getElementById('database-explorer-section');
+            if (explorerSection) {
+              explorerSection.style.display = 'none';
+            }
+          }
+
           // Inform other tabs (optional): set a localStorage flag to notify other pages
           try { localStorage.setItem('dbDisconnectedAt', Date.now().toString()); } catch (e) {}
         } else {
@@ -704,6 +714,27 @@ export function initializeEventBindings(elements) {
     elements.queryHistoryAPI = initQueryHistory(elements);
   } catch (error) {
     console.warn('Failed to initialize query history:', error);
+  }
+
+  // Initialize database explorer
+  try {
+    const explorerContainer = document.getElementById('database-explorer-container');
+    if (explorerContainer) {
+      elements.databaseExplorer = initDatabaseExplorer(explorerContainer);
+
+      // Setup refresh button
+      const refreshBtn = document.getElementById('refresh-schema-btn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          const dbName = elements.databasesDropdown?.value;
+          if (dbName && elements.databaseExplorer) {
+            elements.databaseExplorer.loadTables(dbName);
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to initialize database explorer:', error);
   }
 
   // Start a new conversation
