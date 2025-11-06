@@ -27,7 +27,7 @@ def get_db_config_from_session() -> Optional[Dict]:
     return session.get(SESSION_DB_CONFIG_KEY)
 
 
-def set_db_config_in_session(host: str, port: int, user: str, password: str, database: Optional[str] = None):
+def set_db_config_in_session(host: str, port: int, user: str, password: str, database: Optional[str] = None, db_type: str = 'mysql'):
     """
     Store database configuration in Flask session.
 
@@ -37,8 +37,10 @@ def set_db_config_in_session(host: str, port: int, user: str, password: str, dat
         user: Database user
         password: Database password
         database: Database name (optional)
+        db_type: Database type ('mysql', 'postgresql', or 'sqlite'), defaults to 'mysql'
     """
     config = {
+        'db_type': db_type.lower(),
         'host': host,
         'port': int(port),
         'user': user,
@@ -51,7 +53,7 @@ def set_db_config_in_session(host: str, port: int, user: str, password: str, dat
     session[SESSION_DB_CONFIG_KEY] = config
     session.modified = True
 
-    logger.info(f"Database config stored in session for user {user}@{host}")
+    logger.info(f"{db_type.upper()} config stored in session for user {user}@{host}")
 
 
 def update_database_in_session(database: str):
@@ -103,6 +105,19 @@ def clear_db_config_from_session():
     logger.info("Database config cleared from session")
 
 
+def get_db_type() -> Optional[str]:
+    """
+    Get the database type from session configuration.
+
+    Returns:
+        Database type ('mysql', 'postgresql', 'sqlite') or None
+    """
+    config = get_db_config_from_session()
+    if config:
+        return config.get('db_type', 'mysql')
+    return None
+
+
 def is_db_configured() -> bool:
     """
     Check if database configuration exists in session.
@@ -111,7 +126,17 @@ def is_db_configured() -> bool:
         True if configured, False otherwise
     """
     config = get_db_config_from_session()
-    return config is not None and config.get('host') and config.get('user')
+    if not config:
+        return False
+
+    db_type = config.get('db_type', 'mysql').lower()
+
+    # SQLite only needs database path
+    if db_type == 'sqlite':
+        return config.get('database') is not None
+
+    # MySQL and PostgreSQL need host and user
+    return config.get('host') and config.get('user')
 
 
 def is_database_selected() -> bool:

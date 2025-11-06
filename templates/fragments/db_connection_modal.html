@@ -13,13 +13,36 @@
                 </div>
                 <div>
                     <h2 class="text-xl font-bold app-text">Connect to Database</h2>
-                    <p class="text-xs app-text-secondary mt-0.5">MySQL Server Connection</p>
+                    <p class="text-xs app-text-secondary mt-0.5" id="db-type-description">Select database type and configure connection</p>
                 </div>
             </div>
         </div>
 
         <!-- Form -->
         <form id="db-connection-form" class="space-y-4">
+
+            <!-- Database Type Selector -->
+            <div>
+                <label for="db-type" class="block text-sm font-semibold mb-2 app-text">Database Type</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-5 h-5 app-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                        </svg>
+                    </div>
+                    <select id="db-type" name="db_type" required
+                        class="w-full pl-10 pr-4 py-2.5 rounded-lg app-input app-border focus:ring-2 focus:ring-opacity-50 transition-all appearance-none">
+                        <option value="mysql" selected>MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="sqlite">SQLite (File-based)</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <svg class="w-5 h-5 app-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
             <!-- Host -->
             <div>
@@ -107,6 +130,47 @@
         const cancel = document.getElementById('db-connection-cancel');
         const togglePassword = document.getElementById('toggle-password');
         const passwordInput = document.getElementById('mysql-password');
+        const dbTypeSelect = document.getElementById('db-type');
+        const portInput = document.getElementById('mysql-port');
+        const hostField = document.getElementById('mysql-host').parentElement.parentElement;
+        const portField = portInput.parentElement.parentElement;
+        const userField = document.getElementById('mysql-user').parentElement.parentElement;
+        const passwordField = passwordInput.parentElement.parentElement;
+
+        // Handle database type change
+        if (dbTypeSelect) {
+            dbTypeSelect.addEventListener('change', function() {
+                const dbType = this.value;
+
+                // Update port default value and show/hide fields
+                if (dbType === 'mysql') {
+                    portInput.value = '3306';
+                    hostField.style.display = 'block';
+                    portField.style.display = 'block';
+                    userField.style.display = 'block';
+                    passwordField.style.display = 'block';
+                    document.getElementById('mysql-host').required = true;
+                    document.getElementById('mysql-user').required = true;
+                } else if (dbType === 'postgresql') {
+                    portInput.value = '5432';
+                    hostField.style.display = 'block';
+                    portField.style.display = 'block';
+                    userField.style.display = 'block';
+                    passwordField.style.display = 'block';
+                    document.getElementById('mysql-host').required = true;
+                    document.getElementById('mysql-user').required = true;
+                } else if (dbType === 'sqlite') {
+                    portInput.value = '';
+                    // For SQLite, hide server fields
+                    hostField.style.display = 'none';
+                    portField.style.display = 'none';
+                    userField.style.display = 'none';
+                    passwordField.style.display = 'none';
+                    document.getElementById('mysql-host').required = false;
+                    document.getElementById('mysql-user').required = false;
+                }
+            });
+        }
 
         // Close modal
         if (cancel) {
@@ -114,6 +178,13 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
                 document.getElementById('db-connection-form').reset();
+                // Reset to MySQL defaults
+                if (dbTypeSelect) dbTypeSelect.value = 'mysql';
+                if (portInput) portInput.value = '3306';
+                hostField.style.display = 'block';
+                portField.style.display = 'block';
+                userField.style.display = 'block';
+                passwordField.style.display = 'block';
             };
         }
 

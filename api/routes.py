@@ -116,11 +116,19 @@ def connect_db():
     user = data.get('user')
     password = data.get('password')
     db_name = data.get('db_name')
+    db_type = data.get('db_type', 'mysql')  # Default to MySQL for backward compatibility
     conversation_id = session.get('conversation_id')
 
-    # If all connection fields present -> treat as server connection request
+    # For SQLite, only db_name (file path) is required
+    if db_type == 'sqlite':
+        if db_name:
+            return _handle_server_connection(None, None, None, None, db_type, db_name)
+        else:
+            return jsonify({'status': 'error', 'message': 'Database file path is required for SQLite connection.'})
+
+    # For MySQL/PostgreSQL, all connection fields are required
     if all([host, port, user, password]):
-        return _handle_server_connection(host, port, user, password)
+        return _handle_server_connection(host, port, user, password, db_type)
 
     # If only db_name present -> treat as selecting a database on the server
     if db_name:
@@ -130,10 +138,18 @@ def connect_db():
     return jsonify({'status': 'error', 'message': 'All fields are required for server connection, or db_name for database selection.'})
 
 
-def _handle_server_connection(host, port, user, password):
+def _handle_server_connection(host, port, user, password, db_type='mysql', database=None):
     """
     Connect to database server and store config in session.
     Multi-user safe: Each user's config is isolated in their session.
+
+    Args:
+        host: Database host (None for SQLite)
+        port: Database port (None for SQLite)
+        user: Database user (None for SQLite)
+        password: Database password (None for SQLite)
+        db_type: Database type ('mysql', 'postgresql', 'sqlite')
+        database: Database name or file path (for SQLite)
     """
     # Clear any cached DB metadata from previous connections
     try:
@@ -143,20 +159,39 @@ def _handle_server_connection(host, port, user, password):
         logger.debug('Failed to clear DatabaseOperations cache before applying new server config')
 
     # Store config in session (per-user isolation)
-    set_db_config_in_session(host, int(port), user, password)
+    if db_type == 'sqlite':
+        # For SQLite, store minimal config with file path
+        set_db_config_in_session('', 0, '', '', database=database, db_type='sqlite')
+    else:
+        # For MySQL/PostgreSQL, store full server config
+        set_db_config_in_session(host, int(port), user, password, database=database, db_type=db_type)
 
-    # Test connection and fetch schemas
+    # Test connection and fetch databases/schemas
     try:
         conn = get_db_connection()
-        if conn.is_connected():
+
+        # Validate connection based on database type
+        from database.adapters import get_adapter
+        adapter = get_adapter(db_type)
+
+        if adapter.validate_connection(conn):
             from database.operations import get_databases as _get_databases
             dbs_result = _get_databases()
+
             if dbs_result.get('status') == 'success':
-                logger.info(f"User connected to database server {host}:{port} with {len(dbs_result.get('databases', []))} databases")
-                return jsonify({
-                    'status': 'connected',
-                    'message': f'Connected to database server at {host}:{port}',
-                    'schemas': dbs_result['databases']
+                if db_type == 'sqlite':
+                    logger.info(f"User connected to SQLite database at {database}")
+                    return jsonify({
+                        'status': 'connected',
+                        'message': f'Connected to SQLite database',
+                        'schemas': dbs_result['databases']
+                    })
+                else:
+                    logger.info(f"User connected to {db_type.upper()} server {host}:{port} with {len(dbs_result.get('databases', []))} databases")
+                    return jsonify({
+                        'status': 'connected',
+                        'message': f'Connected to {db_type.upper()} server at {host}:{port}',
+                        'schemas': dbs_result['databases']
                 })
             return jsonify({
                 'status': 'connected',

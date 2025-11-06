@@ -3,16 +3,16 @@ Multi-User Connection Manager
 
 Manages database connection pools for multiple users with different configurations.
 Each unique database configuration gets its own connection pool.
+Supports MySQL, PostgreSQL, and SQLite through adapter pattern.
 """
 
-import mysql.connector
-from mysql.connector import pooling
 import threading
 import hashlib
 import time
 from contextlib import contextmanager
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Any
 import logging
+from database.adapters import get_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,8 @@ class ConnectionManager:
         if self._initialized:
             return
 
-        self._pools: Dict[str, pooling.MySQLConnectionPool] = {}
+        self._pools: Dict[str, Any] = {}  # Supports MySQL, PostgreSQL, SQLite pools
+        self._adapters: Dict[str, Any] = {}  # Database adapter per pool
         self._pool_locks: Dict[str, threading.Lock] = {}
         self._pool_last_used: Dict[str, float] = {}
         self._global_lock = threading.Lock()
@@ -52,45 +53,60 @@ class ConnectionManager:
         self._start_cleanup_thread()
         self._initialized = True
 
-        logger.info("ConnectionManager initialized")
+        logger.info("ConnectionManager initialized with multi-database support")
 
     def _get_pool_key(self, config: dict) -> str:
         """
         Generate unique key for a database configuration.
-        Uses host, port, user, and database to create hash.
+        Uses db_type, host, port, user, and database to create hash.
         """
-        key_parts = [
-            config.get('host', ''),
-            str(config.get('port', 3306)),
-            config.get('user', ''),
-            config.get('database', '')
-        ]
+        db_type = config.get('db_type', 'mysql').lower()
+
+        # For SQLite, key is based on file path only
+        if db_type == 'sqlite':
+            key_parts = [
+                'sqlite',
+                config.get('database', ':memory:')
+            ]
+        else:
+            # For server-based databases (MySQL, PostgreSQL)
+            adapter = get_adapter(db_type)
+            default_port = adapter.default_port
+            key_parts = [
+                db_type,
+                config.get('host', ''),
+                str(config.get('port', default_port)),
+                config.get('user', ''),
+                config.get('database', '')
+            ]
+
         key_string = '|'.join(key_parts)
         return hashlib.md5(key_string.encode()).hexdigest()
 
-    def _create_pool(self, config: dict, pool_key: str) -> pooling.MySQLConnectionPool:
+    def _create_pool(self, config: dict, pool_key: str) -> Any:
         """
-        Create a new connection pool for the given configuration.
+        Create a new connection pool for the given configuration using the appropriate adapter.
         """
-        pool_config = config.copy()
-        pool_config.update({
-            'pool_name': f'pool_{pool_key[:8]}',
-            'pool_size': 5,  # Smaller pool per config
-            'pool_reset_session': True,
-            'autocommit': False,
-            'use_unicode': True,
-            'charset': 'utf8mb4',
-            'collation': 'utf8mb4_unicode_ci',
-            'connect_timeout': 10,
-            'buffered': True
-        })
+        db_type = config.get('db_type', 'mysql').lower()
 
         try:
-            pool = pooling.MySQLConnectionPool(**pool_config)
-            logger.info(f"Created connection pool {pool_key[:8]} for {config.get('user')}@{config.get('host')}/{config.get('database', 'N/A')}")
+            # Get the appropriate database adapter
+            adapter = get_adapter(db_type)
+
+            # Create pool using the adapter
+            pool = adapter.create_connection_pool(config)
+
+            # Store adapter reference for this pool
+            self._adapters[pool_key] = adapter
+
+            if adapter.requires_server:
+                logger.info(f"Created {db_type.upper()} connection pool {pool_key[:8]} for {config.get('user')}@{config.get('host')}/{config.get('database', 'N/A')}")
+            else:
+                logger.info(f"Created {db_type.upper()} connection pool {pool_key[:8]} for {config.get('database', ':memory:')}")
+
             return pool
         except Exception as e:
-            logger.error(f"Failed to create connection pool: {e}")
+            logger.error(f"Failed to create {db_type.upper()} connection pool: {e}")
             raise
 
     def get_connection(self, config: dict):
@@ -99,14 +115,20 @@ class ConnectionManager:
         Creates pool if it doesn't exist, reuses existing pool otherwise.
 
         Args:
-            config: Database configuration dict with host, port, user, password, database
+            config: Database configuration dict with:
+                   - db_type: 'mysql', 'postgresql', or 'sqlite'
+                   - host, port, user, password (for MySQL/PostgreSQL)
+                   - database (path for SQLite, name for others)
 
         Returns:
-            MySQL connection from the appropriate pool
+            Database connection from the appropriate pool
         """
-        # Validate config
-        if not config.get('host') or not config.get('user'):
-            raise ValueError("Database configuration must include 'host' and 'user'")
+        db_type = config.get('db_type', 'mysql').lower()
+
+        # Validate config based on database type
+        if db_type != 'sqlite':
+            if not config.get('host') or not config.get('user'):
+                raise ValueError(f"{db_type.upper()} configuration must include 'host' and 'user'")
 
         pool_key = self._get_pool_key(config)
 
@@ -120,13 +142,14 @@ class ConnectionManager:
         # Update last used time
         self._pool_last_used[pool_key] = time.time()
 
-        # Get connection from pool
+        # Get connection from pool using the appropriate adapter
         try:
-            connection = self._pools[pool_key].get_connection()
-            logger.debug(f"Connection acquired from pool {pool_key[:8]}")
+            adapter = self._adapters[pool_key]
+            connection = adapter.get_connection_from_pool(self._pools[pool_key])
+            logger.debug(f"Connection acquired from {db_type.upper()} pool {pool_key[:8]}")
             return connection
         except Exception as e:
-            logger.error(f"Failed to get connection from pool {pool_key[:8]}: {e}")
+            logger.error(f"Failed to get connection from {db_type.upper()} pool {pool_key[:8]}: {e}")
             raise
 
     @contextmanager
@@ -136,27 +159,27 @@ class ConnectionManager:
 
         Args:
             config: Database configuration dict
-            dictionary: If True, return rows as dictionaries
-            buffered: If True, fetch all rows immediately
+            dictionary: If True, return rows as dictionaries (if supported)
+            buffered: If True, fetch all rows immediately (if supported)
 
         Yields:
-            MySQL cursor
+            Database cursor
         """
+        pool_key = self._get_pool_key(config)
+
+        # Ensure pool exists
+        if pool_key not in self._pools:
+            with self._global_lock:
+                if pool_key not in self._pools:
+                    self._pools[pool_key] = self._create_pool(config, pool_key)
+                    self._pool_locks[pool_key] = threading.Lock()
+
+        adapter = self._adapters[pool_key]
         conn = self.get_connection(config)
-        cursor = None
-        try:
-            cursor = conn.cursor(dictionary=dictionary, buffered=buffered)
+
+        # Use adapter's cursor context manager
+        with adapter.get_cursor(conn, dictionary=dictionary, buffered=buffered) as cursor:
             yield cursor
-            if conn.in_transaction:
-                conn.commit()
-        except Exception as e:
-            if conn.in_transaction:
-                conn.rollback()
-            logger.error(f"Error in cursor operation: {e}")
-            raise
-        finally:
-            if cursor:
-                cursor.close()
 
     def close_pool(self, config: dict) -> bool:
         """
@@ -176,9 +199,12 @@ class ConnectionManager:
         with self._global_lock:
             if pool_key in self._pools:
                 try:
-                    # Close all connections in the pool
-                    self._pools[pool_key]._remove_connections()
+                    # Use adapter to close the pool
+                    adapter = self._adapters[pool_key]
+                    adapter.close_pool(self._pools[pool_key])
+
                     del self._pools[pool_key]
+                    del self._adapters[pool_key]
                     del self._pool_locks[pool_key]
                     del self._pool_last_used[pool_key]
                     logger.info(f"Closed connection pool {pool_key[:8]}")
@@ -197,12 +223,14 @@ class ConnectionManager:
             pool_keys = list(self._pools.keys())
             for pool_key in pool_keys:
                 try:
-                    self._pools[pool_key]._remove_connections()
+                    adapter = self._adapters[pool_key]
+                    adapter.close_pool(self._pools[pool_key])
                     logger.info(f"Closed pool {pool_key[:8]}")
                 except Exception as e:
                     logger.error(f"Error closing pool {pool_key[:8]}: {e}")
 
             self._pools.clear()
+            self._adapters.clear()
             self._pool_locks.clear()
             self._pool_last_used.clear()
             logger.info("All connection pools closed")
@@ -223,8 +251,10 @@ class ConnectionManager:
 
             for pool_key in pool_keys_to_remove:
                 try:
-                    self._pools[pool_key]._remove_connections()
+                    adapter = self._adapters[pool_key]
+                    adapter.close_pool(self._pools[pool_key])
                     del self._pools[pool_key]
+                    del self._adapters[pool_key]
                     del self._pool_locks[pool_key]
                     del self._pool_last_used[pool_key]
                     logger.info(f"Cleaned up idle pool {pool_key[:8]}")
