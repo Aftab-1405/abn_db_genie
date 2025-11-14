@@ -92,6 +92,54 @@ class Config:
     # Logging Configuration
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
+    # Firebase Web/Client SDK Configuration (for frontend)
+    @staticmethod
+    def get_firebase_web_config():
+        """Get Firebase web client configuration from environment variables"""
+        return {
+            "apiKey": os.getenv('FIREBASE_WEB_API_KEY', ''),
+            "authDomain": os.getenv('FIREBASE_AUTH_DOMAIN', ''),
+            "projectId": os.getenv('FIREBASE_WEB_PROJECT_ID', ''),
+            "storageBucket": os.getenv('FIREBASE_STORAGE_BUCKET', ''),
+            "messagingSenderId": os.getenv('FIREBASE_MESSAGING_SENDER_ID', ''),
+            "appId": os.getenv('FIREBASE_APP_ID', '')
+        }
+
+    # Validation method to ensure Firebase project consistency
+    @staticmethod
+    def validate_firebase_project_consistency():
+        """Validate that Admin SDK and Client SDK use the same Firebase project"""
+        admin_project_id = os.getenv('FIREBASE_PROJECT_ID', '')
+        web_project_id = os.getenv('FIREBASE_WEB_PROJECT_ID', '')
+
+        if not admin_project_id or not web_project_id:
+            print("⚠️  Warning: Firebase project IDs not configured")
+            return False
+
+        if admin_project_id != web_project_id:
+            raise ValueError(
+                f"Firebase project ID mismatch!\n"
+                f"  Admin SDK (FIREBASE_PROJECT_ID): {admin_project_id}\n"
+                f"  Client SDK (FIREBASE_WEB_PROJECT_ID): {web_project_id}\n"
+                f"Both must use the SAME Firebase project for authentication to work correctly."
+            )
+
+        print(f"✅ Firebase project consistency validated: {admin_project_id}")
+        return True
+
+    # CORS Configuration
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
+
+    # Rate Limiting Configuration
+    RATELIMIT_ENABLED = os.getenv('RATELIMIT_ENABLED', 'True').lower() == 'true'
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+    RATELIMIT_DEFAULT = os.getenv('RATELIMIT_DEFAULT', '200 per day, 50 per hour')
+
+    # SQL Query Security Configuration
+    MAX_QUERY_RESULTS = int(os.getenv('MAX_QUERY_RESULTS', 10000))  # Max rows to return
+    QUERY_TIMEOUT_SECONDS = int(os.getenv('QUERY_TIMEOUT_SECONDS', 30))  # Query timeout
+    MAX_QUERY_LENGTH = int(os.getenv('MAX_QUERY_LENGTH', 10000))  # Max characters in query
+
 class DevelopmentConfig(Config):
     """Development-specific configuration"""
     DEBUG = True

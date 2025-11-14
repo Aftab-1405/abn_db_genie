@@ -1,8 +1,9 @@
 // code-block.js - Refactored to handle only functionality, not styling
 
-import { showNotification } from "./notifications.js";
+import toastManager from "../utils/toast.js";
 import { renderMermaid } from "./mermaid-helper.js";
 import { executeSqlString } from "../sql.js";
+import createSqlCard from "./sql-card.js";
 
 /**
  * Enhanced code block functionality without styling concerns.
@@ -16,8 +17,14 @@ export function wrapCodeBlocks(textDiv, elements) {
 
     const codeText = pre.getAttribute("data-code") || code.textContent;
     const language = pre.getAttribute("data-language") || "";
-    const isSQL = pre.hasAttribute("data-sql");
+    const isSQL = pre.hasAttribute("data-sql") || language.toLowerCase() === 'sql';
     const isMermaid = pre.hasAttribute("data-mermaid");
+
+    // Handle SQL with special SQL card component
+    if (isSQL && !pre.hasAttribute("data-sql-card-processed")) {
+      handleSqlCodeBlock(pre, codeText, elements);
+      return; // Skip standard processing
+    }
 
     // Apply syntax highlighting first (if not mermaid)
     if (!isMermaid) {
@@ -29,13 +36,53 @@ export function wrapCodeBlocks(textDiv, elements) {
     if (language) pre.classList.add(`code-block--${language}`);
 
     // Only add interactive elements, not styling
-    addCodeBlockButtons(pre, codeText, isSQL, elements);
+    addCodeBlockButtons(pre, codeText, false, elements); // Don't add Run button for SQL anymore
 
     // Handle Mermaid diagrams
     if (isMermaid) {
       handleMermaidDiagram(pre, codeText);
     }
   });
+}
+
+/**
+ * Handle SQL code blocks with SQL card component
+ */
+function handleSqlCodeBlock(pre, sqlText, elements) {
+  // Mark as processed to avoid re-processing
+  pre.setAttribute("data-sql-card-processed", "true");
+
+  // Create SQL card with actions
+  const sqlCard = createSqlCard(sqlText, {
+    showActions: true,
+    onExecute: (sql) => {
+      if (elements && typeof executeSqlString === 'function') {
+        executeSqlString(elements, sql);
+      } else {
+        toastManager.error("Cannot execute query: elements not available");
+      }
+    },
+    onEdit: (sql) => {
+      // Open SQL editor and populate with this query
+      if (elements && elements.sqlEditor) {
+        elements.sqlEditor.setValue(sql);
+        // Open SQL editor popup
+        const sqlEditorPopup = document.getElementById('sql-editor-popup');
+        if (sqlEditorPopup) {
+          sqlEditorPopup.classList.remove('hidden');
+          sqlEditorPopup.classList.add('flex');
+          elements.sqlEditor.refresh();
+          elements.sqlEditor.focus();
+        }
+        toastManager.info("Query loaded into SQL Editor");
+      } else {
+        toastManager.error("SQL Editor not available");
+      }
+    }
+  });
+
+  // Replace the pre element with SQL card
+  pre.parentNode.replaceChild(sqlCard, pre);
 }
 
 /**
@@ -129,11 +176,11 @@ function createCopyButton(codeText, elements) {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
       `;
-      if (elements) showNotification(elements, "Code copied to clipboard", "success");
+      toastManager.success("Code copied to clipboard");
     } catch (err) {
       // Log the error and notify the user
       console.error("Failed to copy code to clipboard", err);
-      if (elements) showNotification(elements, "Failed to copy code", "error");
+      toastManager.error("Failed to copy code");
     }
 
     copyTimeoutId = setTimeout(() => {

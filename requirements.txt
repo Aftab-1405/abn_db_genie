@@ -2,10 +2,14 @@
 Flask>=2.2,<3.0
 python-dotenv>=1.0.0,<2.0.0
 
-# DB (choose only the one you're using)
+# Security and Performance
+Flask-CORS>=4.0.0,<5.0.0
+Flask-Limiter>=3.5.0,<4.0.0
+
+# DB - Multi-database support
 mysql-connector-python>=8.1.0,<9.0.0
-# OR if using MySQLdb with Flask-MySQLdb
-# mysqlclient>=2.2.0,<3.0.0
+psycopg2-binary>=2.9.0,<3.0.0
+# SQLite is built into Python, no additional package needed
 
 # Firebase Admin SDK
 firebase-admin>=6.2.0,<7.0.0

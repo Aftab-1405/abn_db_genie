@@ -1,6 +1,7 @@
 // static/js/sql.js
 
-import { showNotification, renderQueryResults, clearTable } from "./ui.js";
+import { renderQueryResults, clearTable } from "./ui.js";
+import toastManager from "./utils/toast.js";
 
 // —————————————————————————————————————————————————————————
 // 1) fetchDatabases: Populate the <select id="databases"> on load
@@ -29,13 +30,13 @@ export async function fetchDatabases(elements) {
     }
     return { status: 'error', message: data.message || 'No databases' };
   } catch {
-    showNotification(elements, "Failed to fetch databases", "error");
+    toastManager.error("Failed to fetch databases");
     return { status: 'error', message: 'Fetch failed' };
   }
 }
 
 // —————————————————————————————————————————————————————————
-// 2) handleConnectDb: Called when user clicks “Connect”
+// 2) handleConnectDb: Called when user clicks "Connect"
 // —————————————————————————————————————————————————————————
 export async function handleConnectDb(elements) {
   const dbName = elements.databasesDropdown.value;
@@ -56,12 +57,28 @@ export async function handleConnectDb(elements) {
       if (typeof window.updateConnectionStatus === 'function') {
         window.updateConnectionStatus(true, dbName);
       }
-      showNotification(elements, `Connected to database ${dbName}`, "success");
+      toastManager.success(`Connected to database: ${dbName}`);
+
+      // Load database schema in explorer
+      if (elements.databaseExplorer) {
+        elements.databaseExplorer.loadTables(dbName);
+
+        // Show the database explorer section and hide empty state
+        const explorerSection = document.getElementById('database-explorer-section');
+        const emptyState = document.getElementById('database-empty-state');
+        if (explorerSection) {
+          explorerSection.style.display = 'block';
+        }
+        if (emptyState) {
+          emptyState.style.display = 'none';
+        }
+      }
     } else {
-      showNotification(elements, data.message, "error");
+      toastManager.error(data.message || "Failed to connect to database");
     }
-  } catch {
-    showNotification(elements, "Failed to connect to the database", "error");
+  } catch (error) {
+    console.error('Database connection error:', error);
+    toastManager.error("Failed to connect to the database");
   } finally {
     if (elements.clearButtonLoading) {
       elements.clearButtonLoading(elements.connectDbButton, originalContent);
@@ -73,14 +90,17 @@ export async function handleConnectDb(elements) {
 }
 
 // —————————————————————————————————————————————————————————
-// 3) executeSqlString: Called both from “Run” buttons and “Execute” editor
+// 3) executeSqlString: Called both from "Run" buttons and "Execute" editor
 // —————————————————————————————————————————————————————————
 export async function executeSqlString(elements, sqlText) {
   // Prevent executing queries if server is not connected
   if (!elements?.serverConnected) {
-    showNotification(elements, 'Not connected to any database server', 'error');
+    toastManager.error('Not connected to any database server');
     return;
   }
+
+  let queryStatus = 'error'; // Track query status for history
+
   try {
     const resp = await fetch("/run_sql_query", {
       method: "POST",
@@ -94,12 +114,20 @@ export async function executeSqlString(elements, sqlText) {
 
     if (data.status === "success" && data.result) {
       const { fields, rows } = data.result;
+      queryStatus = 'success';
+      // renderQueryResults already shows success toast, don't duplicate
       renderQueryResults(elements, fields, rows);
-      showNotification(elements, data.message, "success");
     } else {
-      showNotification(elements, data.message, "error");
+      // Show error message from backend
+      toastManager.error(data.message || "Query execution failed");
     }
-  } catch {
-    showNotification(elements, "Failed to execute query", "error");
+  } catch (error) {
+    console.error('Query execution error:', error);
+    toastManager.error("Network error: Failed to execute query");
+  } finally {
+    // Add query to history
+    if (elements.queryHistoryAPI) {
+      elements.queryHistoryAPI.addQuery(sqlText, queryStatus);
+    }
   }
 }

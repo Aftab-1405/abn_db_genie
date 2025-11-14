@@ -2,7 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    /* Typography improvements */
+    body {
+        @apply text-base leading-relaxed;
+        font-feature-settings: "kern" 1, "liga" 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-semibold tracking-tight;
+    }
+
+    /* Better focus outlines */
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+        @apply outline-none ring-2 ring-offset-2;
+    }
+}
+
 @layer components {
+    /* Enhanced input styling */
+    .app-input {
+        @apply transition-all duration-200;
+    }
+
+    .app-input:focus {
+        @apply ring-2 ring-offset-1;
+    }
     /* =================================================================
        BUTTON LOADING - Running light border animation
        ================================================================= */
@@ -37,6 +67,32 @@
             transparent 100%
         );
         background-size: 200% 100%;
+    }
+
+    /* =================================================================
+       SIDEBAR TABS - Tab navigation styling
+       ================================================================= */
+
+    .sidebar-tab {
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .sidebar-tab.active {
+        @apply app-text border-indigo-600 dark:border-indigo-400;
+    }
+
+    .sidebar-tab:not(.active):hover {
+        @apply app-surface-secondary;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: flex;
+        flex-direction: column;
     }
 
     /* =================================================================
@@ -106,11 +162,11 @@
     }
 
     /* =================================================================
-       MESSAGE LAYOUT - Chat message styling
+       MESSAGE LAYOUT - Theme-aware chat message styling
        ================================================================= */
 
     .message {
-        @apply flex gap-3 p-2 mb-4 opacity-0 transform translate-y-2;
+        @apply flex gap-3 p-3 mb-5 opacity-0 transform translate-y-2;
         @apply app-transition duration-300;
     }
 
@@ -118,22 +174,67 @@
         @apply opacity-100 translate-y-0;
     }
 
+    /* User messages - subtle theme-aware bubble */
     .message--user {
-        @apply flex-row;
+        @apply flex-row justify-start;
     }
 
+    .message--user .message__content {
+        @apply app-surface-secondary rounded-2xl rounded-tl-sm;
+        @apply px-4 py-3 shadow-sm max-w-[85%];
+        @apply border app-border;
+    }
+
+    /* AI messages - always show background, even when empty */
     .message--ai {
         @apply flex-row;
     }
 
+    .message--ai .message__content {
+        @apply app-surface rounded-xl px-4 py-3;
+        @apply border app-border shadow-sm;
+        /* Ensure minimum height so background is visible even when empty */
+        @apply min-h-[3rem];
+    }
+
     .message-avatar {
-        @apply w-6 h-6 md:w-7 md:h-7 rounded-full flex-shrink-0;
-        @apply mt-3 app-transition duration-300;
+        @apply w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0;
+        @apply mt-1 app-transition duration-300 ring-2 ring-white dark:ring-gray-800 shadow-sm;
     }
 
     .message__content {
         @apply flex-1 min-w-0 text-base;
         @apply app-text;
+    }
+
+    /* Loading dots animation for AI thinking */
+    .message-loading-dots {
+        @apply flex gap-1 px-4 py-3;
+    }
+
+    .message-loading-dots span {
+        @apply w-2 h-2 rounded-full;
+        @apply bg-gray-400 dark:bg-gray-600;
+        animation: loading-bounce 1.4s infinite ease-in-out both;
+    }
+
+    .message-loading-dots span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .message-loading-dots span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @keyframes loading-bounce {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
     }
 
     /* =================================================================

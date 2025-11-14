@@ -5,9 +5,12 @@ import {
   addMessage,
   wrapCodeBlocks,
   scrollToBottom,
-  showNotification,
 } from "./ui.js";
 import { sendUserInput } from "./chat.js";
+import toastManager from "./utils/toast.js";
+import { initQueryHistory } from "./utils/query-history.js";
+import { initDatabaseExplorer } from "./utils/database-explorer.js";
+import { initSidebarTabs } from "./utils/sidebar-tabs.js";
 
 // Reusable API response handler with error notification
 const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
@@ -18,7 +21,7 @@ const handleApiResponse = async (fetchPromise, errorMessage, elements) => {
     throw new Error(`Unexpected response: ${data.status}`);
   } catch (error) {
     console.error("API Error:", error);
-    showNotification(elements, errorMessage, "error");
+    toastManager.error(errorMessage);
     return null;
   }
 };
@@ -243,11 +246,7 @@ const handleDbConnectionForm = async (elements, formData) => {
     const data = await resp.json();
 
     if (data.status === "connected") {
-      showNotification(
-        elements,
-        `Connected to database at ${host}:${port}`,
-        "success"
-      );
+      toastManager.success(`Connected to database at ${host}:${port}`);
 
       // Populate schemas dropdown - handle both 'schemas' and 'databases' keys
       const databases = data.schemas || data.databases || [];
@@ -258,16 +257,12 @@ const handleDbConnectionForm = async (elements, formData) => {
 
       return true;
     } else {
-      showNotification(
-        elements,
-        data.message || "Failed to connect to the database",
-        "error"
-      );
+      toastManager.error(data.message || "Failed to connect to the database");
       return false;
     }
   } catch (error) {
     console.error("Database connection error:", error);
-    showNotification(elements, "Connection error occurred", "error");
+    toastManager.error("Connection error occurred");
     return false;
   }
 };
@@ -301,6 +296,12 @@ window.updateConnectionStatus = function(isConnected, dbName = '') {
   const statusText = document.getElementById('status-text');
   const dbDropdown = document.getElementById('databases');
 
+  // Header status widgets
+  const headerDisconnected = document.getElementById('db-status-disconnected');
+  const headerConnected = document.getElementById('db-status-connected');
+  const headerDbName = document.getElementById('db-status-name');
+
+  // Update sidebar connection status
   if (connectBtn && disconnectBtn && statusIndicator && statusText) {
     if (isConnected) {
       // Connected to server - enable disconnect, disable connect
@@ -338,6 +339,22 @@ window.updateConnectionStatus = function(isConnected, dbName = '') {
       if (dbDropdown) {
         dbDropdown.disabled = true;
       }
+    }
+  }
+
+  // Update header connection status widget
+  if (headerDisconnected && headerConnected && headerDbName) {
+    if (isConnected && dbName) {
+      // Show connected state with database name
+      headerDisconnected.classList.add('hidden');
+      headerConnected.classList.remove('hidden');
+      headerConnected.classList.add('inline-flex');
+      headerDbName.textContent = dbName;
+    } else {
+      // Show disconnected state
+      headerDisconnected.classList.remove('hidden');
+      headerConnected.classList.add('hidden');
+      headerConnected.classList.remove('inline-flex');
     }
   }
 };
@@ -433,18 +450,31 @@ const setupDbConnectionModal = (elements) => {
           elements.serverConnected = false;
           // Clear dropdown
           elements.databasesDropdown.innerHTML = '';
-          showNotification(elements, 'Disconnected from database server', 'success');
+          toastManager.success('Disconnected from database server');
           // Update connection status UI
           window.updateConnectionStatus(false);
+
+          // Clear and hide database explorer, show empty state
+          if (elements.databaseExplorer) {
+            elements.databaseExplorer.clear();
+            const explorerSection = document.getElementById('database-explorer-section');
+            const emptyState = document.getElementById('database-empty-state');
+            if (explorerSection) {
+              explorerSection.style.display = 'none';
+            }
+            if (emptyState) {
+              emptyState.style.display = 'flex';
+            }
+          }
 
           // Inform other tabs (optional): set a localStorage flag to notify other pages
           try { localStorage.setItem('dbDisconnectedAt', Date.now().toString()); } catch (e) {}
         } else {
-          showNotification(elements, data?.message || 'Failed to disconnect', 'error');
+          toastManager.error(data?.message || 'Failed to disconnect');
         }
       } catch (err) {
         console.error('Disconnect error:', err);
-        showNotification(elements, 'Failed to disconnect', 'error');
+        toastManager.error('Failed to disconnect');
       } finally {
         if (elements.clearButtonLoading) {
           elements.clearButtonLoading(disconnectBtn, orig);
@@ -562,24 +592,26 @@ const setupProfileMenu = (elements) => {
           console.debug('localStorage clear error:', e);
         }
 
-        // Step 4: Import Firebase auth dynamically
-        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js");
-        const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js");
+        // Step 4: Fetch Firebase config and sign out
+        try {
+          const configResp = await fetch('/firebase-config');
+          const configData = await configResp.json();
 
-        // Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyCzmz7H7OgKXQplbg1UNMuQ2B4QMwU_FT4",
-          authDomain: "myproject-5216c.firebaseapp.com",
-          projectId: "myproject-5216c",
-          storageBucket: "myproject-5216c.appspot.com",
-          messagingSenderId: "89584435724",
-          appId: "1:89584435724:web:0a5d357fc2c76e554b6429",
-        };
+          if (configData.status === 'success' && configData.config) {
+            // Import Firebase auth dynamically
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js");
+            const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js");
 
-        // Step 5: Initialize Firebase and sign out
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        await signOut(auth);
+            // Step 5: Initialize Firebase and sign out
+            const app = initializeApp(configData.config);
+            const auth = getAuth(app);
+            await signOut(auth);
+          } else {
+            console.warn('Could not fetch Firebase config for logout, continuing anyway');
+          }
+        } catch (firebaseError) {
+          console.warn('Firebase logout error, continuing with session cleanup:', firebaseError);
+        }
 
         // Step 6: Clear session on backend (this should also clean up DB connections)
         await fetch("/logout", { method: "POST" });
@@ -588,7 +620,7 @@ const setupProfileMenu = (elements) => {
         window.location.replace("/auth");
       } catch (error) {
         console.error("Logout error:", error);
-        showNotification(elements, "Failed to logout. Please try again.", "error");
+        toastManager.error("Failed to logout. Please try again.");
       }
     });
   }
@@ -682,6 +714,41 @@ export function initializeEventBindings(elements) {
   setupInputHandling(elements);
   setupSqlQueryExecution(elements);
 
+  // Initialize query history
+  try {
+    elements.queryHistoryAPI = initQueryHistory(elements);
+  } catch (error) {
+    console.warn('Failed to initialize query history:', error);
+  }
+
+  // Initialize database explorer
+  try {
+    const explorerContainer = document.getElementById('database-explorer-container');
+    if (explorerContainer) {
+      elements.databaseExplorer = initDatabaseExplorer(explorerContainer);
+
+      // Setup refresh button
+      const refreshBtn = document.getElementById('refresh-schema-btn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          const dbName = elements.databasesDropdown?.value;
+          if (dbName && elements.databaseExplorer) {
+            elements.databaseExplorer.loadTables(dbName);
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to initialize database explorer:', error);
+  }
+
+  // Initialize sidebar tabs
+  try {
+    elements.sidebarTabs = initSidebarTabs();
+  } catch (error) {
+    console.warn('Failed to initialize sidebar tabs:', error);
+  }
+
   // Start a new conversation
   elements.newConversationBtn.addEventListener("click", async () => {
     const data = await handleApiResponse(
@@ -705,7 +772,7 @@ export function initializeEventBindings(elements) {
       if (elements.aiLogoContainer) {
         elements.aiLogoContainer.style.display = "flex";
       }
-      showNotification(elements, "New conversation started", "success");
+      toastManager.success("New conversation started");
       // Refresh conversation list to show the new conversation
       await fetchAndDisplayConversations(elements);
     }
@@ -714,6 +781,8 @@ export function initializeEventBindings(elements) {
 
 // Fetch and render past conversations in the sidebar
 export async function fetchAndDisplayConversations(elements) {
+  console.log('[Conversations] Fetching conversations...');
+
   // Show loading state
   const noConversationsMessage = document.getElementById(
     "no-conversations-message"
@@ -729,10 +798,14 @@ export async function fetchAndDisplayConversations(elements) {
     elements
   );
 
+  console.log('[Conversations] Received data:', data);
+
   if (data) {
+    console.log('[Conversations] Number of conversations:', data.conversations?.length);
     populateConversations(elements, data.conversations);
   } else if (noConversationsMessage) {
     // Handle error state
+    console.error('[Conversations] Failed to load conversations');
     noConversationsMessage.textContent = "Failed to load conversations";
     noConversationsMessage.style.display = "block";
   }
@@ -765,20 +838,16 @@ const handleConversationDeletion = async (
     if (response.ok) {
       // Remove conversation item from UI
       conversationItem.remove();
-      showNotification(
-        elements,
-        "Conversation deleted successfully",
-        "success"
-      );
+      toastManager.success("Conversation deleted successfully");
 
       handleCurrentConversationDeletion(elements, conversationId);
       handleEmptyConversationList();
     } else {
-      showNotification(elements, "Failed to delete conversation", "error");
+      toastManager.error("Failed to delete conversation");
     }
   } catch (error) {
     console.error("Error deleting conversation:", error);
-    showNotification(elements, "Error deleting conversation", "error");
+    toastManager.error("Error deleting conversation");
   }
 };
 
@@ -859,17 +928,22 @@ const handleEmptyConversationList = () => {
 
 // Create conversation entries for the sidebar
 function populateConversations(elements, conversations) {
+  console.log('[Conversations] Populating conversations, count:', conversations?.length);
+
   const conversationListContainer =
     elements.conversationList || document.getElementById("conversation-list");
   const noConversationsMessage = document.getElementById(
     "no-conversations-message"
   );
 
+  console.log('[Conversations] Container element:', conversationListContainer);
+
   // Clear existing content
   conversationListContainer.innerHTML = "";
 
   if (!conversations?.length) {
     // Show no conversations message
+    console.log('[Conversations] No conversations to display');
     const emptyMessage = document.createElement("div");
     emptyMessage.id = "no-conversations-message";
     emptyMessage.className =
@@ -892,6 +966,7 @@ function populateConversations(elements, conversations) {
   });
 
   conversationListContainer.appendChild(frag);
+  console.log('[Conversations] Conversations populated. Container children:', conversationListContainer.children.length);
 }
 
 // Helper function to create a conversation item
@@ -1210,7 +1285,7 @@ async function loadConversation(elements, conversationId) {
     }
 
     scrollToBottom(elements);
-    showNotification(elements, "Conversation loaded", "success");
+    toastManager.success("Conversation loaded");
   }
 }
 

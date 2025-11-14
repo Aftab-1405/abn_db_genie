@@ -5,6 +5,9 @@
  * Manages SQL query results display and data visualization preparation
  */
 
+import createDataTable from './data-table.js';
+import toastManager from '../utils/toast.js';
+
 let latestFields = [];
 let latestRows = [];
 
@@ -25,43 +28,37 @@ export function clearTable(tableElem) {
   }
 }
 
-// Render SQL query results in modal table
-export function renderQueryResults(elements, fields, rows) {
+// Render SQL query results using enhanced data table component
+export function renderQueryResults(elements, fields, rows, metadata = {}) {
   showModal(elements);
-  clearTable(elements.queryResultTable);
+
+  // Get the container that holds the table
+  const tableContainer = elements.queryResultTable.parentElement;
 
   // Handle empty results
   if (fields.length === 0 && rows.length === 0) {
-    const headerRow = elements.queryResultTable.insertRow(-1);
-    const th = document.createElement("th");
-    th.textContent = "No data returned";
-    th.colSpan = 1;
-    th.className = "px-2 py-1 text-center text-sm md:text-base";
-    headerRow.appendChild(th);
+    tableContainer.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Data Returned</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">The query executed successfully but returned no results.</p>
+      </div>
+    `;
     setupShowVizButton(fields, rows);
     return;
   }
 
-  // Create table header
-  const headerRow = elements.queryResultTable.insertRow(-1);
-  fields.forEach((colName) => {
-    const th = document.createElement("th");
-    th.textContent = colName;
-    th.className = "px-2 py-1 text-center text-sm md:text-base";
-    headerRow.appendChild(th);
-  });
-
-  // Populate table rows
-  rows.forEach((rowVals) => {
-    const rowElem = elements.queryResultTable.insertRow(-1);
-    rowVals.forEach((cellVal) => {
-      const td = rowElem.insertCell(-1);
-      td.textContent = cellVal;
-      td.className = "px-2 py-1 text-center text-sm md:text-base";
-    });
-  });
+  // Clear old content and render new enhanced table
+  tableContainer.innerHTML = '';
+  const dataTable = createDataTable(fields, rows, metadata);
+  tableContainer.appendChild(dataTable);
 
   setupShowVizButton(fields, rows);
+
+  // Show success toast with row count
+  toastManager.success(`Query returned ${rows.length.toLocaleString()} row${rows.length !== 1 ? 's' : ''}`);
 }
 
 // Setup visualization button for query results

@@ -12,6 +12,32 @@
         </button>
         <img src="/static/images/Brand Logo.png" alt="Brand Logo" class="max-h-6 ml-2" loading="eager" width="auto"
             height="24">
+
+        <!-- Read-Only Mode Badge -->
+        <div class="ml-3 hidden sm:flex items-center">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 has-tooltip"
+                  data-tooltip="Only SELECT queries are allowed for security">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                READ-ONLY
+            </span>
+        </div>
+
+        <!-- Database Connection Status Widget -->
+        <div id="db-connection-status" class="ml-3 hidden sm:flex items-center">
+            <div id="db-status-disconnected" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium app-surface-secondary app-text-secondary border app-border">
+                <span class="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600 mr-2"></span>
+                Not Connected
+            </div>
+            <div id="db-status-connected" class="hidden items-center px-3 py-1 rounded-full text-xs font-medium app-surface border app-border cursor-pointer hover:app-surface-secondary transition-colors has-tooltip">
+                <span class="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400 mr-2 animate-pulse"></span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1 app-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                </svg>
+                <span id="db-status-name" class="font-semibold app-text"></span>
+            </div>
+        </div>
     </div>
 
     <!-- SQL Editor Icon & Profile with consistent sizing and alignment -->

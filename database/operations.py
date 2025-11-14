@@ -1,7 +1,9 @@
-"""Optimized secure database operations and queries - READ-ONLY VERSION"""
+"""Optimized secure database operations and queries - READ-ONLY VERSION
+Multi-user support: Uses session-based database configuration.
+"""
 
 import mysql.connector
-from database.connection import get_cursor
+from database.session_utils import get_db_cursor, get_current_database, is_database_selected
 from database.security import DatabaseSecurity
 import logging
 import time
@@ -9,8 +11,12 @@ from typing import Dict, List, Tuple, Optional
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
 import threading
+from config import Config
 
 logger = logging.getLogger(__name__)
+
+# Alias for backward compatibility
+get_cursor = get_db_cursor
 
 
 class DatabaseOperationError(Exception):
@@ -25,21 +31,24 @@ class DatabaseOperations:
     _cache_lock = threading.Lock()
     
     @staticmethod
-    @lru_cache(maxsize=32)
     def get_databases() -> Dict:
-        """Cached fetch of available databases - SECURE & FAST VERSION"""
+        """Fetch available databases - SECURE VERSION
+
+        Multi-user safe: Uses session-based connection, no global caching.
+        Note: Removed @lru_cache to support per-user database configurations.
+        """
         try:
             with get_cursor() as cursor:
                 cursor.execute("SHOW DATABASES")
                 databases = [db[0] for db in cursor.fetchall()]
-            
+
             # Filter out system databases for security
             system_dbs = {'information_schema', 'mysql', 'performance_schema', 'sys'}
             user_databases = [db for db in databases if db.lower() not in system_dbs]
-            
+
             logger.info(f"Retrieved {len(user_databases)} user databases")
             return {'status': 'success', 'databases': user_databases}
-            
+
         except mysql.connector.Error as err:
             logger.error(f"Database error in get_databases: {err}")
             return {'status': 'error', 'message': 'Failed to retrieve databases'}
@@ -223,47 +232,74 @@ def _process_table_info(table: str, db_name: str) -> str:
 def execute_sql_query(sql_query: str) -> Dict:
     """Execute SQL query securely - READ-ONLY VERSION WITH TIMING"""
     try:
+        # Check query length limit
+        if len(sql_query) > Config.MAX_QUERY_LENGTH:
+            logger.warning(f"Query too long: {len(sql_query)} characters (max: {Config.MAX_QUERY_LENGTH})")
+            return {
+                'status': 'error',
+                'message': f'Query too long. Maximum allowed length is {Config.MAX_QUERY_LENGTH} characters.'
+            }
+
         # Analyze query for security issues (with caching)
         analysis = DatabaseSecurity.analyze_sql_query(sql_query)
-        
+
         if not analysis['is_safe']:
             logger.warning(f"Unsafe query blocked: {analysis['warnings']}")
             return {
                 'status': 'error',
                 'message': f"Query blocked for security reasons: {', '.join(analysis['warnings'])}"
             }
-        
+
         # ONLY ALLOW SELECT QUERIES - NO DML OPERATIONS
         if analysis['query_type'] != 'SELECT':
             logger.warning(f"Non-SELECT query blocked: {analysis['query_type']}")
             return {
                 'status': 'error',
-                'message': 'Only SELECT queries are allowed. INSERT, UPDATE, DELETE operations are not permitted.'
+                'message': f'⚠️ READ-ONLY MODE: Only SELECT queries are allowed. {analysis["query_type"]} operations are blocked for security. This system is designed for data exploration and analysis only.',
+                'query_type_blocked': analysis['query_type']
             }
-        
-        # Execute query with timing
+
+        # Execute query with timing and timeout
         start_time = time.time()
-        
+
         with get_cursor(buffered=True) as cursor:
+            # Set query timeout
+            cursor.execute(f"SET SESSION MAX_EXECUTION_TIME={Config.QUERY_TIMEOUT_SECONDS * 1000}")
             cursor.execute(sql_query)
             
             # Only SELECT queries reach this point
             rows = cursor.fetchall()
-            
+
             end_time = time.time()
             execution_time = round((end_time - start_time) * 1000, 2)  # Convert to milliseconds
-            
+
+            # Check result size limit
+            row_count = len(rows)
+            truncated = False
+            if row_count > Config.MAX_QUERY_RESULTS:
+                logger.warning(f"Query returned {row_count} rows, truncating to {Config.MAX_QUERY_RESULTS}")
+                rows = rows[:Config.MAX_QUERY_RESULTS]
+                truncated = True
+
             result = {
                 'fields': cursor.column_names,
                 'rows': rows
             }
-            
-            logger.info(f"SELECT query executed successfully in {execution_time}ms, returned {len(rows)} rows")
+
+            message = f'Query executed successfully in {execution_time}ms. '
+            if truncated:
+                message += f'Results truncated to {Config.MAX_QUERY_RESULTS} rows (total: {row_count} rows). '
+            else:
+                message += f'Data retrieved ({row_count} rows). '
+
+            logger.info(f"SELECT query executed successfully in {execution_time}ms, returned {row_count} rows{' (truncated)' if truncated else ''}")
             return {
                 'status': 'success',
                 'result': result,
-                'message': f'Query executed successfully in {execution_time}ms. Data retrieved.',
+                'message': message,
                 'row_count': len(rows),
+                'total_rows': row_count,
+                'truncated': truncated,
                 'execution_time_ms': execution_time,
                 'query_type': 'SELECT'
             }
